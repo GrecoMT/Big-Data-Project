@@ -3,7 +3,6 @@ from pyspark.sql.types import IntegerType, FloatType, StringType, Row
 from pyspark.sql.functions import (regexp_replace, split, expr, col, to_date, regexp_extract, udf, count,
                                    avg, sum, when, first, concat, max, min, countDistinct, explode, lower, lit, year,
                                    month, abs)
-
 from pyspark.sql import functions as F
 
 import utils
