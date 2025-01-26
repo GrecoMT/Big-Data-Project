@@ -1,23 +1,38 @@
 from pyspark.sql import SparkSession
+from pyspark import SparkConf
 from pyspark.sql.types import IntegerType, FloatType
-from pyspark.sql.functions import (regexp_replace, split, expr, col, to_date, regexp_extract, udf, count,
+from pyspark.sql.functions import (regexp_replace, split, expr, col, to_date, regexp_extract, udf, size, count,
                                    avg, sum, when, first, concat, max, min, countDistinct, explode, lower, lit, year,
                                    month, abs) #ricordare di rimuovere gli import non usati
 from pyspark.sql import functions as F
 import utils
 
-
-datasetPath = "dataset/Hotel_Reviews.csv"
-
 class SparkBuilder:
 
     def __init__(self, appname: str, dataset_path: str):
-        self.spark = (SparkSession.builder.master("local[*]").
-                      appName(appname).getOrCreate())
-        self.dataset = self.spark.read.csv(datasetPath, header=True, inferSchema=True)
+        
+        conf = SparkConf() \
+            .set("spark.driver.memory", "8g") \
+            .set("spark.executor.memory", "8g")\
+            .set('spark.executor.cores', "4")\
+            .set('spark.driver.maxResultSize', "4gb")
+            
+        self.spark = (SparkSession.builder 
+                    .config(conf=conf)    
+                    .master("local[*]") 
+                    .appName(appname)
+                    .getOrCreate())
+        
+        # Imposto il log level su ERROR per evitare i warning perché mi stanno sul cazzooo
+        self.spark.sparkContext.setLogLevel("ERROR")
+        
+        self.dataset = self.spark.read.csv(dataset_path, header=True, inferSchema=True)   
         self.castDataset()
         self.cleanDataset()
         self.df_finale = self.fillLatLng()
+        
+
+                
 
     def castDataset(self):
         df = self.dataset

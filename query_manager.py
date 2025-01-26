@@ -1,6 +1,7 @@
 from spark_builder import SparkBuilder
 from pyspark.sql import functions as F
 from pyspark.sql.functions import explode, split, avg, col, desc
+from coherence_review_model_vader import CoherenceReviewModel
 
 
 class QueryManager:
@@ -181,3 +182,48 @@ class QueryManager:
             "Hotel_Name", "Hotel_Address", "avg_score", 
             "total_positive_reviews", "total_negative_reviews", "review_count"
         ).show(truncate=False)
+
+    # ------------------------------QUERY 6----------------------------------------------
+    #Analisi della lunghezza: verificare se recensioni più lunghe tendono ad essere più positive o negative.
+    def review_length_analysis(self, n=20):
+        """
+        Analizza la lunghezza delle recensioni e verifica se recensioni più lunghe 
+        tendono ad essere più positive o negative.
+        """
+        df = self.df
+        df.filter((F.col("Review_Total_Positive_Word_Counts") > 0) | (F.col("Review_Total_Negative_Word_Counts") > 0)) #aggiunto per ottimizzare, filtro le recensioni vuote
+        
+        # Calcolo della lunghezza media delle recensioni positive e negative per punteggio
+        review_length = df.groupBy("Reviewer_Score") \
+            .agg(
+                F.avg("Review_Total_Positive_Word_Counts").alias("avg_positive_length"),
+                F.avg("Review_Total_Negative_Word_Counts").alias("avg_negative_length"),
+                F.count("*").alias("review_count")
+            ).orderBy("Reviewer_Score")
+
+        print("\nLunghezza media delle recensioni positive e negative per punteggio:")
+        review_length.show(n, truncate=False)
+
+        # Analisi generale: recensioni più lunghe tendono ad essere più positive o negative?
+        avg_positive = df.agg(F.avg("Review_Total_Positive_Word_Counts").alias("overall_avg_positive_length")).collect()[0][0]
+        avg_negative = df.agg(F.avg("Review_Total_Negative_Word_Counts").alias("overall_avg_negative_length")).collect()[0][0]
+
+        print(f"\nLunghezza media generale delle recensioni positive: {avg_positive:.2f}")
+        print(f"Lunghezza media generale delle recensioni negative: {avg_negative:.2f}")
+        
+#--------------------------QUERY 7------------------------------------------------
+#Analisi della coerenza tra recensioni e punteggi:predire il punteggio basato sul contenuto della recensione e confrontarlo con il punteggio effettivamente dato
+    def coherence_analysis(self, threshold=2.0,n=10, export_path=None):
+        """
+        Richiama l'analisi del modello di sentiment e coerenza.
+        """
+        sentiment_model = CoherenceReviewModel(self.df)
+
+        # Preprocessa il testo
+        sentiment_model.preprocess_reviews()
+
+        # Addestra il modello
+        sentiment_model.train_sentiment_model()
+
+        # Esegui l'analisi di coerenza
+        predictions = sentiment_model.analyze_consistency(threshold,n, export_path) # treshold serve a defnire un limite massimo accettabile per l'errore assoluto tra il punteggio predetto dal modello e il punteggio reale
