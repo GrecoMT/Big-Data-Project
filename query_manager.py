@@ -1,7 +1,10 @@
 from spark_builder import SparkBuilder
 from pyspark.sql import functions as F
-from pyspark.sql.functions import explode, split, avg, col, desc
+from pyspark.sql.functions import explode, split, avg, col, desc,count
+from pyspark.sql import functions as F
+from pyspark.sql.window import Window
 from coherence_review_model_vader import CoherenceReviewModel
+from season_sentiment_analysis import SeasonSentimentAnalysis
 
 
 class QueryManager:
@@ -227,3 +230,149 @@ class QueryManager:
 
         # Esegui l'analisi di coerenza
         predictions = sentiment_model.analyze_consistency(threshold,n, export_path) # treshold serve a defnire un limite massimo accettabile per l'errore assoluto tra il punteggio predetto dal modello e il punteggio reale
+        
+        
+        
+#--------------------------QUERY 8------------------------------------------------
+#Durata della percezione negativa: analizzare se la percezione negativa diminuisce nel tempo.def recovery_time_analysis(self, n=20):
+    def recovery_time_analysis(self, n=20):
+        """
+        Analizza quanto tempo ci vuole affinché un hotel passi da una recensione negativa (<6)
+        a una recensione positiva (>6). Calcola medie per ogni fase e verifica il trend futuro.
+        """
+        df = self.df
+
+        # Ordina le recensioni per hotel e data
+        #window_spec = Window.partitionBy("Hotel_Name").orderBy("Review_Date")
+
+        # Finestra di 10 recensioni precedenti per calcolare la media
+        window_prev = Window.partitionBy("Hotel_Name").orderBy("Review_Date").rowsBetween(-10, 0)
+
+        # Finestra di 5 recensioni successive per il trend dopo la positiva
+        window_after_positive = Window.partitionBy("Hotel_Name").orderBy("Review_Date").rowsBetween(1, 5)
+
+        # Calcolo di avg_after_negative (considerando tutte le recensioni precedenti)
+        df = df.withColumn("avg_after_negative", F.avg("Reviewer_Score").over(window_prev))
+
+        # Filtra recensioni negative
+        df_negative = df.filter(F.col("Reviewer_Score") < 6).withColumnRenamed(
+            "Reviewer_Score", "Negative_Score"
+        ).withColumnRenamed("Review_Date", "Negative_Review_Date").withColumnRenamed(
+            "avg_after_negative", "avg_after_negative_score"
+        )
+
+        # Filtra recensioni positive
+        df_positive = df.filter(F.col("Reviewer_Score") > 6).withColumn(
+            "avg_trend_after_positive",
+            F.avg("Reviewer_Score").over(window_after_positive)
+        ).withColumnRenamed("Reviewer_Score", "Positive_Score").withColumnRenamed(
+            "Review_Date", "Positive_Review_Date"
+        )
+
+        # Join tra recensioni negative e positive
+        df_recovery = df_positive.join(
+            df_negative,
+            on="Hotel_Name",
+            how="inner"
+        ).withColumn(
+            "days_between",
+            F.datediff(F.col("Positive_Review_Date"), F.col("Negative_Review_Date"))
+        ).filter(F.col("days_between") > 0)  # Escludi casi senza recupero
+
+        # Calcolo di avg_after_positive
+        df_recovery = df_recovery.withColumn(
+            "avg_after_positive",
+            (F.col("avg_after_negative_score") + F.col("Positive_Score")) / 2
+        )
+
+        # Filtro per il days_between minimo per ogni hotel
+        window_min_days = Window.partitionBy("Hotel_Name").orderBy("days_between")
+        df_recovery_filtered = df_recovery.withColumn(
+            "rank", F.row_number().over(window_min_days)
+        ).filter(F.col("rank") == 1)  # Mantieni solo la riga con il days_between minimo
+
+        # Calcola il tempo medio di recupero
+        avg_recovery_time = df_recovery_filtered.agg(F.avg("days_between").alias("avg_recovery_time")).collect()[0][0]
+
+        # Seleziona i risultati finali
+        result = df_recovery_filtered.select(
+            "Hotel_Name",
+            "avg_after_negative_score",
+            "Negative_Score",
+            "days_between",
+            "Positive_Score",
+            "avg_after_positive",
+            "avg_trend_after_positive"
+        ).distinct().orderBy("Hotel_Name", "days_between")
+
+        print("\nRisultati per ogni hotel:")
+        result.show(n, truncate=False)
+        print(f"\nTempo medio di recupero (giorni): {avg_recovery_time:.2f}")
+        
+        
+#--------------------------QUERY 9------------------------------------------------
+
+    #Analisi della reputazione: differenza tra il punteggio medio storico di un hotel e il punteggio medio delle recensioni recenti
+    def reputation_analysis(self, recent_reviews=10, n=20):
+        """
+        Analizza la differenza tra il punteggio medio storico di un hotel e il punteggio medio delle recensioni recenti.
+        """
+        df = self.df
+
+        # Calcolo del punteggio medio storico per ogni hotel
+        avg_historical_window = Window.partitionBy("Hotel_Name")
+        df = df.withColumn(
+            "avg_historical_score",
+            F.avg("Reviewer_Score").over(avg_historical_window)
+        )
+
+        # Calcolo del punteggio medio delle recensioni recenti (finestra di N recensioni)
+        recent_reviews_window = Window.partitionBy("Hotel_Name").orderBy(F.desc("Review_Date")).rowsBetween(Window.currentRow, Window.currentRow + recent_reviews - 1)
+
+        df = df.withColumn(
+            "avg_recent_score",
+            F.avg("Reviewer_Score").over(recent_reviews_window)
+        )
+
+        # Filtro per ottenere una riga per ogni hotel
+        df_aggregated = df.groupBy("Hotel_Name").agg(
+            F.first("avg_historical_score").alias("avg_historical_score"),
+            F.first("avg_recent_score").alias("avg_recent_score")
+        )
+
+        # Calcolo della differenza tra il punteggio recente e quello storico
+        df_aggregated = df_aggregated.withColumn(
+            "score_difference",
+            F.col("avg_recent_score") - F.col("avg_historical_score")
+        )
+
+        # Risultati finali
+        print("\nRisultati dell'analisi della reputazione:")
+        df_aggregated.orderBy("score_difference", ascending=False).show(n, truncate=False)
+
+        # Media delle differenze
+        avg_difference = df_aggregated.agg(F.avg("score_difference").alias("avg_difference")).collect()[0][0]
+        print(f"\nDifferenza media complessiva: {avg_difference:.2f}")
+                
+#-----------------------QUERY 10------------------------------------------------
+    def seasonal_sentiment_analysis(self, n=4):
+        """
+        Analizza come il sentiment medio delle recensioni varia in base alla stagione dell'anno.
+        """
+        # Preprocessa i dati usando la classe SeasonSentimentAnalysis
+        sentiment_analysis = SeasonSentimentAnalysis(self.df)
+        df_preprocessed = sentiment_analysis.preprocess()
+
+        # Calcola il sentiment medio per stagione e per hotel, il punteggio medio e il delta
+        seasonal_sentiment = df_preprocessed.groupBy("Hotel_Name","Season").agg(
+            avg("Net_Sentiment").alias("avg_sentiment"),
+            avg("Reviewer_Score").alias("avg_reviewer_score"),
+            count("*").alias("review_count")
+        ).withColumn(
+            "sentiment_reviewer_delta",
+            (col("avg_sentiment") - (col("avg_reviewer_score"))/10) #normalizziamo perchè altrimenti sarà sempre negativo, chi fantasia cu si query ma non potevamo fare una cosa ridicola???
+        ).orderBy("Hotel_Name", "Season")
+
+        # Mostra i risultati
+        print("\nSentiment medio per stagione:")
+        seasonal_sentiment.show(n, truncate=False)
