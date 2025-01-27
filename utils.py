@@ -3,6 +3,10 @@ from urllib.parse import quote
 import math
 import numpy as np
 
+#import per prova grafico trend.
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 def fix_suspicious_spaces(address):
     corrections = {
         "Damr mont": "Damrémont",
@@ -91,3 +95,39 @@ def calculate_cluster_radius(df_cluster, center_lat, center_lng):
     return max(distances)
 
 #----------------------------------------------------------------
+
+def get_season(month):
+    if month in [12, 1, 2]:
+        return "Winter"
+    elif month in [3, 4, 5]:
+        return "Spring"
+    elif month in [6, 7, 8]:
+        return "Summer"
+    else:
+        return "Autumn"
+
+def graficoTrend(dataframe):
+    trend_pandas = dataframe.toPandas()
+    # Impostare stile del grafico
+    sns.set(style="whitegrid")
+
+    # Creare il grafico per ogni hotel
+    plt.figure(figsize=(12, 6))
+    for hotel in trend_pandas["Hotel_Name"].unique():
+        # Filtrare i dati per ogni hotel
+        hotel_data = trend_pandas[trend_pandas["Hotel_Name"] == hotel]
+        
+        # Creare il grafico a linee per l'hotel
+        sns.lineplot(data=hotel_data, x="YearMonth", y="Average_Score", marker="o", label=hotel)
+
+    # Migliorare l'estetica del grafico
+    plt.title("Trend dello Score Medio per Mese (per Hotel)", fontsize=16)
+    plt.xlabel("Mese", fontsize=12)
+    plt.ylabel("Punteggio Medio", fontsize=12)
+    plt.xticks(rotation=45)
+    plt.legend(title="Hotel", bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.grid(True, linestyle="--", alpha=0.7)
+    plt.tight_layout()
+
+    # Mostrare il grafico
+    plt.show()

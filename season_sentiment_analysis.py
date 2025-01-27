@@ -27,6 +27,7 @@ class SeasonSentimentAnalysis:
         Inizializza la classe con il DataFrame.
         """
         self.df = df
+        ensure_nltk_resources()
 
     def preprocess(self):
         """

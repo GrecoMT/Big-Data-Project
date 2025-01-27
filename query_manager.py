@@ -499,3 +499,62 @@ class QueryManager:
         # Salva o mostra la mappa
         #m.show_in_browser()
         return m
+
+#--------------- COUNT RECENSIONI POS-NEG PER SEASON ---------------#
+    def prova_stagione(self):
+        # UDF per calcolare la stagione
+        season_udf = F.udf(lambda date: get_season(date.month), T.StringType())
+
+        # Aggiungere colonna stagione
+        #df_season = self.df.withColumn("season", season_udf(F.to_date("Review_Date", "yyyy-MM-dd")))
+        df_season = self.df.withColumn("season", season_udf(F.col("Review_Date")))
+
+        # Calcolare se una recensione è positiva o negativa
+        '''df_season = df_season.withColumn("is_positive", F.when(F.col("Positive_Review") != "No Positive", 1).otherwise(0))
+        df_season = df_season.withColumn("is_negative", F.when(F.col("Negative_Review") != "No Negative", 1).otherwise(0))'''
+
+        # Raggruppare per Hotel_Name e stagione e calcolare direttamente i conteggi
+        seasonal_counts = (
+            df_season.groupBy("Hotel_Name", "season")
+            .agg(
+                F.sum(F.when(F.col("Positive_Review") != "No Positive", 1).otherwise(0)).alias("positive_reviews"),
+                F.sum(F.when(F.col("Negative_Review") != "No Negative", 1).otherwise(0)).alias("negative_reviews"),
+            )
+        )
+
+        seasonal_counts.orderBy("hotel_name", "season").show()
+    
+        # Pivot per avere stagioni come colonne
+        '''pivot_result = seasonal_counts.groupBy("Hotel_Name").pivot("season").agg(
+            F.first("positive_reviews").alias("Pos"),
+            F.first("negative_reviews").alias("Neg")
+        )
+
+        # Ordinare le colonne per maggiore chiarezza
+        final_result = pivot_result.select(
+            "Hotel_Name",
+            "Winter_Pos", "Winter_Neg",
+            "Spring_Pos", "Spring_Neg",
+            "Summer_Pos", "Summer_Neg",
+            "Autumn_Pos", "Autumn_Neg"
+        )
+
+        # Mostrare il risultato
+        final_result.show()'''
+
+#--------------- TREND MESE-ANNO  ---------------#
+    def trend_mensile(self):
+        #Creazione colonna "YearMonth" che contiene l'anno e il mese
+        df_trend = self.df.withColumn("YearMonth", F.date_format(F.col("Review_Date"), "yyyy-MM"))
+        
+        # Aggregare per "Hotel_Name" e "YearMonth" e calcolare la media degli score
+        trend_df = df_trend.groupBy("Hotel_Name", "YearMonth").agg(
+            F.avg("Reviewer_Score").alias("Average_Score")
+        ).orderBy("Hotel_Name", "YearMonth")
+
+        #provoGrafico
+        #trend_df = trend_df.filter(F.col("Hotel_Name")=="11 Cadogan Gardens")
+        graficoTrend(trend_df)
+        
+        # Mostrare i dati aggregati
+        #trend_df.show(50)

@@ -13,6 +13,7 @@ if __name__ == '__main__':
     clear_terminal()
     
     dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+    #dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
     spark_builder = SparkBuilder(appname="BigData_App", dataset_path=dataset_path)
 
     # Controlla se i dati sono puliti
