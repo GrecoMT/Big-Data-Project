@@ -8,7 +8,6 @@ from pyspark.sql import functions as F
 import utils
 
 class SparkBuilder:
-
     def __init__(self, appname: str, dataset_path: str):
         
         conf = SparkConf() \
@@ -31,8 +30,10 @@ class SparkBuilder:
         self.cleanDataset()
         self.df_finale = self.fillLatLng()
         
-
-                
+    def get_spark_session(self):
+        return self.spark      
+    def get_dataset(self):
+        return self.df_finale    
 
     def castDataset(self):
         df = self.dataset

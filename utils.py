@@ -1,5 +1,7 @@
 import requests
 from urllib.parse import quote
+import math
+import numpy as np
 
 def fix_suspicious_spaces(address):
     corrections = {
@@ -64,3 +66,28 @@ def get_lat(address):
 def get_lng(address):
     _, lng = get_coordinates_osm(address)
     return lng
+
+
+#----CLUSTERING UTILS FUNC----------
+def calculate_cluster_center(df_cluster):
+    center_lat = np.mean(df_cluster["lat"])
+    center_lng = np.mean(df_cluster["lng"])
+    return center_lat, center_lng
+
+def calculate_lat_lng_radius(center_lat, radius_km):
+    delta_lat = radius_km / 111  # Delta latitudine
+    delta_lng = radius_km / (111 * math.cos(math.radians(center_lat)))  # Delta longitudine
+    return delta_lat, delta_lng
+
+def calculate_cluster_radius(df_cluster, center_lat, center_lng):
+    distances = []
+    for _, row in df_cluster.iterrows():
+        # Calcola la distanza Haversine in km
+        lat_diff = np.radians(row["lat"] - center_lat)
+        lng_diff = np.radians(row["lng"] - center_lng)
+        a = np.sin(lat_diff / 2) ** 2 + np.cos(np.radians(center_lat)) * np.cos(np.radians(row["lat"])) * np.sin(lng_diff / 2) ** 2
+        c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+        distances.append(6371 * c)  # Raggio della Terra in km
+    return max(distances)
+
+#----------------------------------------------------------------

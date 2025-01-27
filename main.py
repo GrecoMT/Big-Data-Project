@@ -55,4 +55,6 @@ if __name__ == '__main__':
     #----------------------------------------------------------------
     #query_manager.recovery_time_analysis(n=100)
     #query_manager.reputation_analysis()
-    query_manager.seasonal_sentiment_analysis(n=100)
+    #query_manager.seasonal_sentiment_analysis(n=100)
+    #query_manager.anomaly_detection(100)
+    #query_manager.location_influence(10)

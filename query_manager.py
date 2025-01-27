@@ -1,15 +1,20 @@
 from spark_builder import SparkBuilder
 from pyspark.sql import functions as F
-from pyspark.sql.functions import explode, split, avg, col, desc,count
+from pyspark.sql.functions import explode, split, avg, col, desc,count, stddev, abs, first
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
+from sklearn.cluster import DBSCAN
 from coherence_review_model_vader import CoherenceReviewModel
 from season_sentiment_analysis import SeasonSentimentAnalysis
-
+import folium
+from utils import calculate_lat_lng_radius
+from utils import calculate_cluster_center
+from utils import calculate_cluster_radius
 
 class QueryManager:
     def __init__(self, spark_builder: SparkBuilder):
         self.df = spark_builder.df_finale
+        self.spark = spark_builder.spark
 
     # ------------------------------QUERY 1----------------------------------------------
 
@@ -234,7 +239,7 @@ class QueryManager:
         
         
 #--------------------------QUERY 8------------------------------------------------
-#Durata della percezione negativa: analizzare se la percezione negativa diminuisce nel tempo.def recovery_time_analysis(self, n=20):
+#Durata della percezione negativa: analizzare se la percezione negativa diminuisce nel tempo.
     def recovery_time_analysis(self, n=20):
         """
         Analizza quanto tempo ci vuole affinché un hotel passi da una recensione negativa (<6)
@@ -376,3 +381,105 @@ class QueryManager:
         # Mostra i risultati
         print("\nSentiment medio per stagione:")
         seasonal_sentiment.show(n, truncate=False)
+        
+        
+#-----------------------QUERY 11------------------------------------------------
+    #dentificare recensioni sospette tipo recensioni estremamente positive o negative che differiscono significativamente dal trend generale dell’hotel
+    def anomaly_detection(self,n=20):
+        
+        df = self.df
+
+        # Calcola la media e deviazione standard del punteggio per ogni hotel
+        hotel_stats = df.groupBy("Hotel_Name").agg(
+            avg("Reviewer_Score").alias("Avg_Score"),
+            stddev("Reviewer_Score").alias("Std_Dev_Score")
+        )
+
+        # Unisci il trend generale al dataframe originale
+        df_with_stats = df.join(hotel_stats, on="Hotel_Name")
+
+        # Identifica recensioni estremamente positive o negative rispetto al trend
+        extreme_reviews = df_with_stats.filter(
+            abs(col("Reviewer_Score") - col("Avg_Score")) > (2 * col("Std_Dev_Score"))
+        )
+
+        # Visualizza le recensioni anomale
+        extreme_reviews.select(
+            "Hotel_Name", "Reviewer_Score", "Avg_Score", "Positive_Review", "Negative_Review", "Reviewer_Score",
+        ).show(n, truncate = True)
+        
+#-----------------------QUERY 12------------------------------------------------
+    def location_influence(self, n=20):
+        
+        df = self.df
+        
+        # Filtra le colonne necessarie
+        df_geo = df.select("Hotel_Name", "Average_Score", "lat", "lng").distinct().dropna() 
+        df_geo.show()
+        
+        # Converti in Pandas per DBSCAN
+        sample_df = df_geo.limit(10000)
+        sample_pandas = sample_df.toPandas() #faccio così senno muore il processo
+
+        #df_geo_pandas = df_geo.toPandas()
+
+        # Prepara i dati per il clustering
+        coords = sample_pandas[["lat", "lng"]].to_numpy()
+
+        # Applica DBSCAN
+        dbscan = DBSCAN(eps=0.05, min_samples=5, metric="euclidean")
+        clusters = dbscan.fit_predict(coords)
+
+        # Aggiungi i cluster al DataFrame Pandas
+        sample_pandas["Cluster"] = clusters
+
+        # Ritorna i dati in Spark
+        df_clustered = self.spark.createDataFrame(sample_pandas)
+
+        # Analizza i cluster in Spark
+        # Calcola la posizione geografica media e il punteggio medio per ogni cluster
+        cluster_summary = df_clustered.groupBy("Cluster").agg(
+            avg("lat").alias("Avg_Lat"),
+            avg("lng").alias("Avg_Lng"),
+            avg("Average_Score").alias("Avg_Score"),
+            count("Hotel_Name").alias("Hotel_Count"),
+            first("Hotel_Name").alias("Example_Hotel")
+       )
+     
+        cluster_summary.show() #Lo vedo perche non sto capendo che caspita si prende
+        
+        # Filtra i dati per il cluster desiderato
+        cluster_data = sample_pandas[sample_pandas["Cluster"] == 0]
+
+        # Calcola centro e raggio del cluster
+        cluster_center_lat, cluster_center_lng = calculate_cluster_center(cluster_data)
+        cluster_radius_km = calculate_cluster_radius(cluster_data, cluster_center_lat, cluster_center_lng)
+
+        # Crea la mappa
+        m = folium.Map(location=[45.4654, 9.1859], zoom_start=6)
+        
+        # Itera su ogni cluster
+        for cluster_id in sample_pandas["Cluster"].unique():
+            if cluster_id == -1:  # Ignora i punti rumore
+                continue
+
+            # Filtra i dati del cluster corrente
+            cluster_data = sample_pandas[sample_pandas["Cluster"] == cluster_id]
+
+            # Calcola il centro e il raggio del cluster
+            cluster_center_lat, cluster_center_lng = calculate_cluster_center(cluster_data)
+            cluster_radius_km = calculate_cluster_radius(cluster_data, cluster_center_lat, cluster_center_lng)
+
+            # Aggiungi un cerchio per il cluster corrente
+            folium.Circle(
+                location=[cluster_center_lat, cluster_center_lng],
+                radius=cluster_radius_km * 1000,  # Converti il raggio in metri
+                color="blue",
+                fill=True,
+                fill_opacity=0.5,
+                popup=f"Cluster: {cluster_id}, Avg Rating: {cluster_data['Average_Score'].mean():.2f}"
+            ).add_to(m)
+
+        # Salva o mostra la mappa
+        #m.show_in_browser()
+        return m
