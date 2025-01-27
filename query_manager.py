@@ -10,6 +10,8 @@ import folium
 from utils import calculate_lat_lng_radius
 from utils import calculate_cluster_center
 from utils import calculate_cluster_radius
+from utils import graficoTrend
+from utils import get_season
 
 class QueryManager:
     def __init__(self, spark_builder: SparkBuilder):

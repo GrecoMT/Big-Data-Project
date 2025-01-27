@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 from streamlit_folium import st_folium
 
+#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+
 st.set_page_config(
     page_title="Hotel Dataset Analysis",
     page_icon="🏨",
@@ -15,10 +18,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+st.sidebar.success("Select a demo above.")
+
 @st.cache_resource
 def get_spark_and_query_manager():
     """Inizializza SparkBuilder e QueryManager."""
-    spark_builder = SparkBuilder("BigDataProject", "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv")
+    spark_builder = SparkBuilder("BigDataProject", dataset_path)
     query_manager = QueryManager(spark_builder)
     return query_manager
 
