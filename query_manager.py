@@ -51,6 +51,7 @@ class QueryManager:
 
         print(f"\nTop {n} parole negative con il punteggio più basso:")
         negative_word_scores.show(n, truncate=False)
+        return positive_word_scores, negative_word_scores
         
         
     # ------------------------------QUERY 2----------------------------------------------
@@ -90,6 +91,7 @@ class QueryManager:
 
         print(f"\nCorrelazione tra nazionalità e lunghezza delle recensioni positive/negative:")
         nationality_reviews.show(n, truncate=False)
+        return nationality_reviews
         
     # ------------------------------QUERY 3----------------------------------------------
 
@@ -126,6 +128,7 @@ class QueryManager:
 
         print("\nInfluenza delle tag selezionate:")
         filtered_tags.show(truncate=False)
+        return filtered_tags
         
         
     # ------------------------------QUERY 4----------------------------------------------
@@ -147,6 +150,7 @@ class QueryManager:
 
         print("\nAnalisi del comportamento dei recensori (esperienza vs punteggio medio):")
         reviewer_analysis.show(50, truncate=False)
+        return reviewer_analysis
         
     # ------------------------------QUERY 5----------------------------------------------
     # Analisi degli outlier: identificare discrepanze significative tra il punteggio medio di un hotel e il numero di recensioni positive e negative.
@@ -190,6 +194,8 @@ class QueryManager:
             "Hotel_Name", "Hotel_Address", "avg_score", 
             "total_positive_reviews", "total_negative_reviews", "review_count"
         ).show(truncate=False)
+        
+        #CAPIRE COSA RITORNARE ORA NON HO TEMPO
 
     # ------------------------------QUERY 6----------------------------------------------
     #Analisi della lunghezza: verificare se recensioni più lunghe tendono ad essere più positive o negative.
@@ -219,6 +225,8 @@ class QueryManager:
         print(f"\nLunghezza media generale delle recensioni positive: {avg_positive:.2f}")
         print(f"Lunghezza media generale delle recensioni negative: {avg_negative:.2f}")
         
+        return df
+        
 #--------------------------QUERY 7------------------------------------------------
 #Analisi della coerenza tra recensioni e punteggi:predire il punteggio basato sul contenuto della recensione e confrontarlo con il punteggio effettivamente dato
     def coherence_analysis(self, threshold=2.0,n=10, export_path=None):
@@ -236,6 +244,7 @@ class QueryManager:
         # Esegui l'analisi di coerenza
         predictions = sentiment_model.analyze_consistency(threshold,n, export_path) # treshold serve a defnire un limite massimo accettabile per l'errore assoluto tra il punteggio predetto dal modello e il punteggio reale
         
+        return predictions
         
         
 #--------------------------QUERY 8------------------------------------------------
@@ -314,6 +323,8 @@ class QueryManager:
         result.show(n, truncate=False)
         print(f"\nTempo medio di recupero (giorni): {avg_recovery_time:.2f}")
         
+        return result
+        
         
 #--------------------------QUERY 9------------------------------------------------
 
@@ -358,6 +369,8 @@ class QueryManager:
         # Media delle differenze
         avg_difference = df_aggregated.agg(F.avg("score_difference").alias("avg_difference")).collect()[0][0]
         print(f"\nDifferenza media complessiva: {avg_difference:.2f}")
+        
+        return df_aggregated
                 
 #-----------------------QUERY 10------------------------------------------------
     def seasonal_sentiment_analysis(self, n=4):
@@ -382,6 +395,7 @@ class QueryManager:
         print("\nSentiment medio per stagione:")
         seasonal_sentiment.show(n, truncate=False)
         
+        return seasonal_sentiment
         
 #-----------------------QUERY 11------------------------------------------------
     #dentificare recensioni sospette tipo recensioni estremamente positive o negative che differiscono significativamente dal trend generale dell’hotel
@@ -407,6 +421,8 @@ class QueryManager:
         extreme_reviews.select(
             "Hotel_Name", "Reviewer_Score", "Avg_Score", "Positive_Review", "Negative_Review", "Reviewer_Score",
         ).show(n, truncate = True)
+        
+        return extreme_reviews
         
 #-----------------------QUERY 12------------------------------------------------
     def location_influence(self, n=20):

@@ -24,6 +24,62 @@ def get_spark_and_query_manager():
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
+    
+def show_landing_page():
+    st.title("Benvenuti a radio 24! oggi abbiamo il brasiliano!")
+    st.markdown(
+        """
+        ### Scopo del Progetto
+        Questo progetto si concentra sull'analisi delle recensioni degli hotel per ottenere 
+        informazioni significative e identificare tendenze, anomalie e comportamenti interessanti 
+        dei recensori. Utilizzando tecnologie di Big Data come **Apache Spark**, combinate con 
+        strumenti di visualizzazione come **Streamlit**, possiamo:
+        - Esplorare dati geografici e clustering degli hotel.
+        - Individuare recensioni sospette o anomalie nei punteggi.
+        - Analizzare la correlazione tra nazionalità dei recensori e punteggi dati.
+        - Esaminare l'influenza di tag e parole chiave sulle recensioni.
+        - Studiare la reputazione e la percezione degli hotel nel tempo.
+
+        ### Dati Utilizzati
+        Il dataset utilizzato contiene:
+        - **Recensioni di hotel** in Europa.
+        - Attributi come punteggi, nazionalità dei recensori, contenuto delle recensioni, 
+          data della recensione e informazioni geografiche (latitudine e longitudine).
+        - Oltre **500.000 recensioni**, fornendo un'ampia base per approfondire diverse analisi.
+
+        ### Obiettivi Principali
+        - Rivelare tendenze nei punteggi e nel comportamento dei recensori.
+        - Migliorare la comprensione dei dati delle recensioni per supportare decisioni 
+          strategiche nel settore alberghiero.
+        - Visualizzare i risultati in modo chiaro e interattivo.
+
+        ---
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.image(
+        "https://upload.wikimedia.org/wikipedia/commons/4/45/Hilton_Paris_Opera_Hotel_Entrance.jpg", 
+        caption="Analisi delle recensioni di hotel in Europa",
+        use_column_width=True
+    )
+
+    # Call-to-action
+    st.markdown(
+        """
+        ### Come Utilizzare l'App
+        Usa la barra laterale per navigare tra le diverse sezioni:
+        - **Geographic Locations**: Esplora la distribuzione geografica degli hotel.
+        - **Anomaly Detection**: Identifica recensioni sospette.
+        - **Word Cloud**: Analizza le parole più frequenti nelle recensioni.
+        - **Tag Influence**: Scopri l'influenza delle tag sui punteggi degli hotel.
+        - **Reputation Analysis**: Studia la reputazione degli hotel nel tempo.
+        - ... e molto altro!
+
+        ---
+        **Inizia ora selezionando una sezione dal menu laterale!**
+        """
+    )    
 
 # Funzione per ogni sezione/analisi
 def show_geographic_locations(query_manager):
@@ -78,37 +134,38 @@ def main():
     
     clear_terminal()
     
+    show_landing_page()
+    
     st.title("Hotel Dataset Analysis")
     query_manager = get_spark_and_query_manager()
 
+    # Sidebar per la navigazione
     st.sidebar.title("Sezioni")
-    option = st.sidebar.radio(
-        "Seleziona un'analisi da eseguire:",
-        (
-            "Geographic Locations",
-            "Anomaly Detection",
-            "Word Cloud Analysis",
-            "Nationality Analysis",
-            "Tag Influence",
-            "Reputation Analysis",
-            "Recovery Time Analysis"
-        )
-    )
 
-    # Mostra la sezione selezionata
-    if option == "Geographic Locations":
+    st.sidebar.title("Seleziona una sezione")
+
+    if st.sidebar.button("Landing Page"):
+        show_landing_page()
+
+    if st.sidebar.button("Geographic Locations"):
         show_geographic_locations(query_manager)
-    elif option == "Anomaly Detection":
+
+    if st.sidebar.button("Anomaly Detection"):
         show_anomaly_detection(query_manager)
-    elif option == "Word Cloud Analysis":
+
+    if st.sidebar.button("Word Cloud Analysis"):
         show_word_cloud(query_manager)
-    elif option == "Nationality Analysis":
+
+    if st.sidebar.button("Nationality Analysis"):
         show_nationality_analysis(query_manager)
-    elif option == "Tag Influence":
+
+    if st.sidebar.button("Tag Influence"):
         show_tag_influence(query_manager)
-    elif option == "Reputation Analysis":
+
+    if st.sidebar.button("Reputation Analysis"):
         show_reputation_analysis(query_manager)
-    elif option == "Recovery Time Analysis":
+
+    if st.sidebar.button("Recovery Time Analysis"):
         show_recovery_time_analysis(query_manager)
 
 
