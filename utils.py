@@ -122,7 +122,7 @@ def graficoTrend(dataframe):
 
     # Migliorare l'estetica del grafico
     plt.title("Trend dello Score Medio per Mese (per Hotel)", fontsize=16)
-    plt.xlabel("Mese", fontsize=12)
+    plt.xlabel("Anno/Mese", fontsize=12)
     plt.ylabel("Punteggio Medio", fontsize=12)
     plt.xticks(rotation=45)
     plt.legend(title="Hotel", bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -130,7 +130,9 @@ def graficoTrend(dataframe):
     plt.tight_layout()
 
     # Mostrare il grafico
-    plt.show()
+    #plt.show()
+    #Return necessario per inserire il grafico nel frontend
+    return plt 
     
     
     

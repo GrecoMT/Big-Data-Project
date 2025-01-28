@@ -149,7 +149,7 @@ def is_adjective_or_adverb(word):
 
 class QueryManager:
     def __init__(self, spark_builder: SparkBuilder):
-        self.spark = spark_builder.spark
+        self.spark = spark_builder
 
     #------------------------------QUERY 1----------------------------------------------
     def words_score_analysis(self, n=20, min_frequency=1000):
@@ -239,7 +239,7 @@ class QueryManager:
             .agg(
                 avg("Reviewer_Score").alias("avg_score"),
                 count("*").alias("review_count")
-            ).filter(F.col("review_count") >= min_reviews) \
+            ).filter(col("review_count") >= min_reviews) \
             .orderBy("avg_score")
 
         print(f"\nTop {n} nazionalità con il punteggio medio più basso (min. {min_reviews} recensioni):")
@@ -694,32 +694,16 @@ class QueryManager:
         final_result.show()'''
 
 #----------------- TREND MESE-ANNO  ------------------#
-    def trend_mensile(self):
+    def trend_mensile(self, hotelName):
+        # Filtrare i dati per l'hotel specificato
+        df_trend = self.spark.df_finale.filter(col("Hotel_Name") == hotelName)
+        
         #Creazione colonna "YearMonth" che contiene l'anno e il mese
-        df_trend = self.spark.df_finale.withColumn("YearMonth", date_format(col("Review_Date"), "yyyy-MM"))
+        df_trend = df_trend.withColumn("YearMonth", date_format(col("Review_Date"), "yyyy-MM"))
         
         # Aggregare per "Hotel_Name" e "YearMonth" e calcolare la media degli score
         trend_df = df_trend.groupBy("Hotel_Name", "YearMonth").agg(
             avg("Reviewer_Score").alias("Average_Score")
         ).orderBy("Hotel_Name", "YearMonth")
 
-        #provoGrafico
-        #trend_df = trend_df.filter(col("Hotel_Name")=="11 Cadogan Gardens")
-        utils.graficoTrend(trend_df)
-        
-        # Mostrare i dati aggregati
-        #trend_df.show(50)
-        #Creazione colonna "YearMonth" che contiene l'anno e il mese
-        df_trend = self.df.withColumn("YearMonth", date_format(col("Review_Date"), "yyyy-MM"))
-        
-        # Aggregare per "Hotel_Name" e "YearMonth" e calcolare la media degli score
-        trend_df = df_trend.groupBy("Hotel_Name", "YearMonth").agg(
-            avg("Reviewer_Score").alias("Average_Score")
-        ).orderBy("Hotel_Name", "YearMonth")
-
-        #provoGrafico
-        #trend_df = trend_df.filter(col("Hotel_Name")=="11 Cadogan Gardens")
-        utils.graficoTrend(trend_df)
-        
-        # Mostrare i dati aggregati
-        #trend_df.show(50)
+        return utils.graficoTrend(trend_df)

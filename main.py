@@ -22,7 +22,10 @@ if __name__ == '__main__':
     #spark_builder.df_finale.filter((F.col("lat") < -90) | (F.col("lat") > 90) | (F.col("lng") < -180) | (F.col("lng") > 180)).show()
 
     #Query
-    query_manager = QueryManager(spark_builder)
+    #query_manager = QueryManager(spark_builder)
+    
+    query_manager = spark_builder.queryManager
+
     #query_manager.words_score_analysis(n=20)
     #query_manager.nationality_review_analysis(n=20)
     #query_manager.tag_influence_analysis(n=20)
