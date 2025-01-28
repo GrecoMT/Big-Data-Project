@@ -130,7 +130,7 @@ class CoherenceReviewModel:
             stepSize=0.1
         )
 
-        sampled_data = prepared_data.sample(fraction=0.5, seed=42)
+        sampled_data = prepared_data.sample(fraction=0.5, seed=42) #si usa 0.5 dei dati per il train 
         model = gbt_regressor.fit(sampled_data)
 
         # Salva il modello
@@ -204,8 +204,8 @@ class CoherenceReviewModel:
             if col_name in inconsistent_reviews.columns:
                 inconsistent_reviews = inconsistent_reviews.drop(col_name)
 
-        #print(f"\nRecensioni incoerenti (errore > {threshold}):")
-        #inconsistent_reviews.select("Positive_Review", "Negative_Review", "Reviewer_Score","prediction", "adjusted_prediction", "error").show(n, truncate=100)
+        print(f"\nRecensioni incoerenti (errore > {threshold}):")
+        inconsistent_reviews.select("Positive_Review", "Negative_Review", "Reviewer_Score","prediction", "adjusted_prediction", "error").show(n, truncate=True)
 
         # Esporta le recensioni incoerenti, se richiesto
         if export_path:

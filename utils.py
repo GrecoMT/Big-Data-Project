@@ -131,3 +131,6 @@ def graficoTrend(dataframe):
 
     # Mostrare il grafico
     plt.show()
+    
+    
+    
