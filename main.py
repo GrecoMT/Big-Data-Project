@@ -1,6 +1,4 @@
-from spark_builder import SparkBuilder
-from query_manager import QueryManager
-from pyspark.sql import SparkSession
+from backend import SparkBuilder
 from pyspark.sql.functions import col, lower
 import os 
 
@@ -12,9 +10,9 @@ if __name__ == '__main__':
     
     clear_terminal()
     
-    export_path="/Users/vincenzopresta/Desktop/Big Data/progetto/coherence_analysis"
-    dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-    #dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+    '''export_path="/Users/vincenzopresta/Desktop/Big Data/progetto/coherence_analysis"
+    dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"'''
+    dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
     spark_builder = SparkBuilder(appname="BigData_App", dataset_path=dataset_path)
 
     # Controlla se i dati sono puliti
@@ -61,5 +59,6 @@ if __name__ == '__main__':
     #query_manager.recovery_time_analysis(n=100)
     #query_manager.reputation_analysis(n=100)
     #query_manager.seasonal_sentiment_analysis(n=100)
-    #query_manager.anomaly_detection(100)
-    query_manager.location_influence(10)
+    x = query_manager.anomaly_detection()
+    print(x.toPandas().to_string())
+    #query_manager.location_influence(10)

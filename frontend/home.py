@@ -2,15 +2,16 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import streamlit as st
-from query_manager import QueryManager
-from spark_builder import SparkBuilder
-import matplotlib.pyplot as plt
-from wordcloud import WordCloud
+
+from backend import SparkBuilder
+
 from streamlit_folium import st_folium
 
+# Percorso dataset
 #dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
 dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
+# Configurazione avanzata della pagina
 st.set_page_config(
     page_title="Hotel Dataset Analysis",
     page_icon="🏨",
@@ -18,83 +19,105 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.sidebar.success("Select a demo above.")
+st.sidebar.title("🔍 Navigazione")
+st.sidebar.markdown("### Sezioni disponibili:")
+
+st.sidebar.markdown("- 🏠 **Home**")
+st.sidebar.markdown("- 📍 **Mappa Hotel**")
+st.sidebar.markdown("- 📊 **Trend & Analisi**")
+st.sidebar.markdown("- 🔍 **Anomaly Detection**")
+st.sidebar.markdown("- 📝 **Word Cloud**")
 
 @st.cache_resource
 def get_spark_and_query_manager():
     """Inizializza SparkBuilder e QueryManager."""
     spark_builder = SparkBuilder("BigDataProject", dataset_path)
-    #query_manager = QueryManager(spark_builder)
     query_manager = spark_builder.queryManager
     return query_manager
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
-    
+
+# Funzione per la homepage migliorata
 def show_landing_page():
-    st.title("Benvenuti a radio 24! oggi abbiamo il brasiliano!")
+    
     st.markdown(
-        """
-        ### Scopo del Progetto
-        Questo progetto si concentra sull'analisi delle recensioni degli hotel per ottenere 
-        informazioni significative e identificare tendenze, anomalie e comportamenti interessanti 
-        dei recensori. Utilizzando tecnologie di Big Data come **Apache Spark**, combinate con 
-        strumenti di visualizzazione come **Streamlit**, possiamo:
-        - Esplorare dati geografici e clustering degli hotel.
-        - Individuare recensioni sospette o anomalie nei punteggi.
-        - Analizzare la correlazione tra nazionalità dei recensori e punteggi dati.
-        - Esaminare l'influenza di tag e parole chiave sulle recensioni.
-        - Studiare la reputazione e la percezione degli hotel nel tempo.
-
-        ### Dati Utilizzati
-        Il dataset utilizzato contiene:
-        - **Recensioni di hotel** in Europa.
-        - Attributi come punteggi, nazionalità dei recensori, contenuto delle recensioni, 
-          data della recensione e informazioni geografiche (latitudine e longitudine).
-        - Oltre **500.000 recensioni**, fornendo un'ampia base per approfondire diverse analisi.
-
-        ### Obiettivi Principali
-        - Rivelare tendenze nei punteggi e nel comportamento dei recensori.
-        - Migliorare la comprensione dei dati delle recensioni per supportare decisioni 
-          strategiche nel settore alberghiero.
-        - Visualizzare i risultati in modo chiaro e interattivo.
-
-        ---
-        """,
+        "<h1 style='text-align: center; color: #4A90E2;'>🔍 Analisi delle Recensioni degli Hotel</h1>", 
         unsafe_allow_html=True
     )
+    
+    col1, col2, col3 = st.columns([1,2,1])
+    
+    with col2:
+        st.image("frontend/images/PNY_Exterior_with_Rolls_Royce.jpg", 
+                 width=700, caption="Visualizzazione dei dati sulle recensioni degli hotel")
+    
+  
+    # Layout con colonne per una presentazione più moderna
+    col1, col2 = st.columns([2, 1])
 
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/4/45/Hilton_Paris_Opera_Hotel_Entrance.jpg", 
-        caption="Analisi delle recensioni di hotel in Europa",
-        use_column_width=True
-    )
+    with col1:
+        st.markdown(
+            """
+            <h3 style='color: #333;'>📌 Scopo del Progetto</h3>
+            <p style='font-size: 18px;'>
+            Questo progetto sfrutta Spark per analizzare le recensioni degli hotel in Europa, individuare 
+            anomalie e tendenze e fornire insight significativi per il settore alberghiero.
+            </p>
+            """, unsafe_allow_html=True
+        )
 
-    # Call-to-action
+        st.markdown("### 🚀 Tecnologie Utilizzate")
+        st.markdown("- 🔥 **Apache Spark** per il processamento massivo dei dati")
+        st.markdown("- 🎨 **Streamlit** per un’interfaccia intuitiva e interattiva")
+        st.markdown("- 📌 **Folium & Matplotlib** per la visualizzazione dei dati")
+
+    # Linea divisoria
+    st.markdown("---")
+
+    # Obiettivi principali
     st.markdown(
         """
-        ### Come Utilizzare l'App
-        Usa la barra laterale per navigare tra le diverse pagine:
-        - **Geographic Locations**: Esplora la distribuzione geografica degli hotel.
-        - **Anomaly Detection**: Identifica recensioni sospette.
-        - **Word Cloud**: Analizza le parole più frequenti nelle recensioni.
-        - **Tag Influence**: Scopri l'influenza delle tag sui punteggi degli hotel.
-        - **Reputation Analysis**: Studia la reputazione degli hotel nel tempo.
-        - ... e molto altro!
+        <h3 style='color: #333;'>🎯 Obiettivi Principali</h3>
+        """, unsafe_allow_html=True
+    )
 
-        ---
-        **Inizia ora selezionando una pagina dal menu laterale!**
-        """
-    )    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("✅ **Esplorazione geografica** degli hotel")
+        st.markdown("✅ **Identificazione di recensioni sospette**")
+    with col2:
+        st.markdown("✅ **Analisi delle parole chiave** nelle recensioni")
+        st.markdown("✅ **Andamento della reputazione degli hotel** nel tempo")
+    with col3:
+        st.markdown("✅ **Visualizzazione interattiva** dei dati")
+        st.markdown("✅ **Correlazione tra nazionalità e punteggi**")
 
-# Main app con pulsanti
+    # Divider
+    st.markdown("---")
+
+    # Sezione interattiva con pulsanti
+    st.markdown("<h3 style='text-align: center;'>💡 Inizia ora selezionando una sezione dal menu laterale!</h3>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("📍 Mappa Hotel"):
+            st.sidebar.radio("Sezione", ["📍 Mappa Hotel"])
+    with col2:
+        if st.button("📊 Analisi Trend"):
+            st.sidebar.radio("Sezione", ["📊 Trend & Analisi"])
+    with col3:
+        if st.button("🔍 Anomaly Detection"):
+            st.sidebar.radio("Sezione", ["🔍 Anomaly Detection"])
+
+# Gestione delle sezioni
 def main():
-    
     clear_terminal()
     
     show_landing_page()
     
-    st.title("Hotel Dataset Analysis")
-
 if __name__ == "__main__":
     main()
+
+
+

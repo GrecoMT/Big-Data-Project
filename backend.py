@@ -549,8 +549,8 @@ class QueryManager:
         return seasonal_sentiment
         
 #-----------------------QUERY 10------------------------------------------------
-    #dentificare recensioni sospette tipo recensioni estremamente positive o negative che differiscono significativamente dal trend generale dell’hotel
-    def anomaly_detection(self,n=20):
+    #Identificare recensioni sospette tipo recensioni estremamente positive o negative che differiscono significativamente dal trend generale dell’hotel
+    def anomaly_detection(self, hotelName):
         
         df = self.spark.df_finale
 
@@ -569,11 +569,15 @@ class QueryManager:
         )
 
         # Visualizza le recensioni anomale
-        extreme_reviews.select(
-            "Hotel_Name", "Reviewer_Score", "Avg_Score", "Positive_Review", "Negative_Review", "Reviewer_Score",
-        ).show(n, truncate = True)
+        '''df_fin = extreme_reviews.select(
+            "Hotel_Name", "Reviewer_Score", "Avg_Score", "Positive_Review", "Negative_Review",
+        ).show().filter(col("Hotel_Name") == "Number Sixteen")'''
+
+        df_fin = extreme_reviews.filter(col("Hotel_Name")==hotelName).select(
+            "Hotel_Name", "Reviewer_Score", "Avg_Score", "Positive_Review", "Negative_Review"
+        )
         
-        return extreme_reviews
+        return df_fin
         
 #-----------------------QUERY 11------------------------------------------------
     def location_influence(self, n=20):

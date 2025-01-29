@@ -1,7 +1,5 @@
 from backend import SparkBuilder
-
 import streamlit as st
-import pandas as pd
 import folium
 from streamlit_folium import st_folium
 
@@ -23,8 +21,20 @@ df = df_temp.toPandas()
 
 st.title("Mappa degli Hotel")
 
+#Coordinate città
+city_coords = {
+    "Milano": [45.4642, 9.1900],
+    "Vienna": [48.2082, 16.3738],
+    "Barcellona": [41.3851, 2.1734],
+    "Londra": [51.5074, -0.1278],
+    "Parigi": [48.8566, 2.3522]
+}
+
+st.sidebar.title("Seleziona una città")
+selected_city = st.sidebar.radio("Città", list(city_coords.keys()))
+
 # Creare una mappa con Folium
-mappa = folium.Map(location=[df['lat'].mean(), df['lng'].mean()], zoom_start=13)
+mappa = folium.Map(location=city_coords[selected_city], zoom_start=12)
 
 # Aggiungere marker per ogni hotel
 for _, row in df.iterrows():
@@ -43,6 +53,17 @@ map_data = st_folium(mappa, width=1000, height=550)
 #Per il momento mette solamente il plot del trend mensile.
 if map_data and map_data.get('last_object_clicked_tooltip') != None:
     hotel_selezionato = map_data.get('last_object_clicked_tooltip')
-    st.write(f"**Trend Mensile per {hotel_selezionato}:**")
-    plt = spark.queryManager.trend_mensile(hotel_selezionato)
-    st.pyplot(plt)
+    st.markdown(
+        ''' 
+        # Informazioni 
+        
+        '''
+    )
+    with st.spinner(f"Generazione del trend mensile per {hotel_selezionato}..."):
+        st.write(f"**Trend Mensile per {hotel_selezionato}:**")
+        plt = spark.queryManager.trend_mensile(hotel_selezionato)
+        st.pyplot(plt)
+    with st.spinner(f"Individuazione delle recensioni anomale per {hotel_selezionato}..."):
+        extreme_reviews = spark.queryManager.anomaly_detection(hotel_selezionato)
+        st.write(f"**Recensioni anomale rispetto alla media per {hotel_selezionato}:**")
+        st.dataframe(extreme_reviews.toPandas())    
