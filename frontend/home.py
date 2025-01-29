@@ -99,17 +99,6 @@ def show_landing_page():
     # Sezione interattiva con pulsanti
     st.markdown("<h3 style='text-align: center;'>💡 Inizia ora selezionando una sezione dal menu laterale!</h3>", unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("📍 Mappa Hotel"):
-            st.sidebar.radio("Sezione", ["📍 Mappa Hotel"])
-    with col2:
-        if st.button("📊 Analisi Trend"):
-            st.sidebar.radio("Sezione", ["📊 Trend & Analisi"])
-    with col3:
-        if st.button("🔍 Anomaly Detection"):
-            st.sidebar.radio("Sezione", ["🔍 Anomaly Detection"])
-
 # Gestione delle sezioni
 def main():
     clear_terminal()
