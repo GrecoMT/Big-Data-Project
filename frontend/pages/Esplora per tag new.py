@@ -13,7 +13,9 @@ spark = getSpark("BigData_App")
 tags = utils.get_most_used_tags(spark.df_finale)
 
 st.title("Esplora per tag")
-#st.markdown("# Seleziona una città:")
+
+st.markdown("## Seleziona una città:")
+
 st.sidebar.title("🔍 Navigazione")
 st.sidebar.markdown("### Sezioni disponibili:")
 
@@ -69,8 +71,15 @@ if st.session_state.selected_button:
     option = st.selectbox(label = "Seleziona un tag", options=tags, index=None, placeholder="Tag")
     if option != None:
         st.session_state.selected_option = option
-        result = spark.queryManager.get_hotels_by_tag(city=st.session_state.selected_button, tag=option)
-        if result is not None:
-            st.table(result.toPandas())
+        with st.spinner(f"Individuazione dei migliori hotel in {st.session_state.selected_button} con tag {option}..."):
+            st.markdown(
+                "<h4>Hotel ordinati secondo lo score medio</h4>"
+                "<p>Tabella contenente gli hotel della città selezionata "
+                "associati al tag selezionato, ordinati in modo decrescente.</p>",
+                unsafe_allow_html=True
+            )
+            result = spark.queryManager.get_hotels_by_tag(city=st.session_state.selected_button, tag=option)
+            if result is not None:
+                st.table(result.toPandas())
         
         

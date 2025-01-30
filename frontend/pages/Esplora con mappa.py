@@ -70,17 +70,31 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
         
         '''
     )
+    
     with st.spinner(f"Generazione del trend mensile per {hotel_selezionato}..."):
         st.write(f"**Trend Mensile per {hotel_selezionato}:**")
         plt = spark.queryManager.trend_mensile(hotel_selezionato)
         st.pyplot(plt)
+    
     with st.spinner(f"Individuazione delle recensioni anomale per {hotel_selezionato}..."):
         extreme_reviews = spark.queryManager.anomaly_detection(hotel_selezionato)
         st.write(f"**Recensioni anomale rispetto alla media per {hotel_selezionato}:**")
         st.dataframe(extreme_reviews.toPandas())    
+    
+    with st.spinner(f"Confronto ultime recensioni con la media per {hotel_selezionato}..."):
+        st.write(f"**Confronto ultime recensioni con la media per {hotel_selezionato}:**")
+        reputation_single = spark.queryManager.reputation_analysis_single(hotel_selezionato)
+        st.table(reputation_single)
+    
+    with st.spinner(f"Recovery time analysis per {hotel_selezionato}..."):
+        st.write(f"**Recovery time analysis per {hotel_selezionato}:**")
+        reputation_single = spark.queryManager.recovery_time_analysis_single(hotel_selezionato)
+        st.table(reputation_single)
+
     with st.spinner(f"Confronto con hotel vicini a {hotel_selezionato}..."):
         hotel_lat = map_data.get("last_object_clicked").get("lat")
         hotel_lng = map_data.get("last_object_clicked").get("lng")
+        st.write(f"**Trend hotel vicini a {hotel_selezionato}:**")
         nearby_hotels = spark.queryManager.get_nearby_hotels(hotel_lat,hotel_lng)
         plt = spark.queryManager.trend_mensile_compare(nearby_hotels)
         st.pyplot(plt)

@@ -8,6 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import pandas as pd
+
 def fix_suspicious_spaces(address):
     corrections = {
         "Damr mont": "Damrémont",
@@ -177,11 +179,9 @@ def plot_pie_chart(df, city):
     # Esplodi i tag (ARRAY<STRING> -> righe singole)
     tags_df = city_df.select(explode(col("tags")).alias("tag"))
  
-
     # Conta i tag
     tag_counts = tags_df.groupBy("tag").agg(count("*").alias("count")).orderBy(desc("count"))
     
-
     # Converti in Pandas per Plotly
     tag_counts_pd = tag_counts.toPandas()
     
@@ -190,7 +190,8 @@ def plot_pie_chart(df, city):
     others_count = tag_counts_pd[10:]["count"].sum()
     
     if others_count > 0:
-        top_10 = top_10.append({"tag": "Other", "count": others_count}, ignore_index=True)
+        #top_10 = top_10.append({"tag": "Other", "count": others_count}, ignore_index=True)
+        top_10 = pd.concat([top_10, pd.DataFrame([{"tag": "Other", "count": others_count}])], ignore_index=True)
 
     fig = px.pie(top_10, values="count", names="tag", title=f"Distribuzione dei tag per {city}")
     return fig

@@ -16,8 +16,8 @@ import folium
 
 from nltk.corpus import wordnet
 
-dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 class SparkBuilder:
     def __init__(self, appname: str):
@@ -133,7 +133,8 @@ class SparkBuilder:
         # rimuovere le colonne duplicate di df1 ("lat" e "lng" di df1)
         ret = df_merged.drop("lat_f", "lng_f")
         return ret
-    
+
+#Da spostare in utils (fondamentale in query1)
 def is_adjective_or_adverb(word):
     """
     Determina se una parola è un aggettivo (a) o un avverbio (r) utilizzando WordNet.
@@ -472,6 +473,82 @@ class QueryManager:
         print(f"\nTempo medio di recupero (giorni): {avg_recovery_time:.2f}")
         
         return result
+    
+    def recovery_time_analysis_single(self, hotel_name):
+        """
+        Analizza quanto tempo ci vuole affinché un hotel passi da una recensione negativa (<6)
+        a una recensione positiva (>6). Calcola medie per ogni fase e verifica il trend futuro.
+        Può essere limitato a un hotel specifico.
+        """
+        df = self.spark.df_finale
+
+        # Se un hotel specifico è stato passato, filtriamo il DataFrame
+        if hotel_name:
+            df = df.filter(df["Hotel_Name"] == hotel_name)
+
+        # Ordina le recensioni per hotel e data
+        window_prev = Window.partitionBy("Hotel_Name").orderBy("Review_Date").rowsBetween(-10, 0)
+        window_after_positive = Window.partitionBy("Hotel_Name").orderBy("Review_Date").rowsBetween(1, 5)
+
+        # Calcolo di avg_after_negative (considerando tutte le recensioni precedenti)
+        df = df.withColumn("avg_after_negative", avg("Reviewer_Score").over(window_prev))
+
+        # Filtra recensioni negative
+        df_negative = df.filter(col("Reviewer_Score") < 6).withColumnRenamed(
+            "Reviewer_Score", "Negative_Score"
+        ).withColumnRenamed("Review_Date", "Negative_Review_Date").withColumnRenamed(
+            "avg_after_negative", "avg_after_negative_score"
+        )
+
+        # Filtra recensioni positive
+        df_positive = df.filter(col("Reviewer_Score") > 6).withColumn(
+            "avg_trend_after_positive",
+            avg("Reviewer_Score").over(window_after_positive)
+        ).withColumnRenamed("Reviewer_Score", "Positive_Score").withColumnRenamed(
+            "Review_Date", "Positive_Review_Date"
+        )
+
+        # Join tra recensioni negative e positive
+        df_recovery = df_positive.join(
+            df_negative,
+            on="Hotel_Name",
+            how="inner"
+        ).withColumn(
+            "days_between",
+            datediff(col("Positive_Review_Date"), col("Negative_Review_Date"))
+        ).filter(col("days_between") > 0)  # Escludi casi senza recupero
+
+        # Calcolo di avg_after_positive
+        df_recovery = df_recovery.withColumn(
+            "avg_after_positive",
+            (col("avg_after_negative_score") + col("Positive_Score")) / 2
+        )
+
+        # Filtro per il days_between minimo per ogni hotel
+        window_min_days = Window.partitionBy("Hotel_Name").orderBy("days_between")
+        df_recovery_filtered = df_recovery.withColumn(
+            "rank", row_number().over(window_min_days)
+        ).filter(col("rank") == 1)  # Mantieni solo la riga con il days_between minimo
+
+        # Calcola il tempo medio di recupero
+        avg_recovery_time = df_recovery_filtered.agg(avg("days_between").alias("avg_recovery_time")).collect()[0][0]
+
+        # Seleziona i risultati finali
+        result = df_recovery_filtered.select(
+            "Hotel_Name",
+            "avg_after_negative_score",
+            "Negative_Score",
+            "days_between",
+            "Positive_Score",
+            "avg_after_positive",
+            "avg_trend_after_positive"
+        ).distinct().orderBy("Hotel_Name", "days_between")
+
+        '''print("\nRisultati per l'hotel:", hotel_name if hotel_name else "Tutti gli hotel")
+        result.show(n, truncate=False)
+        print(f"\nTempo medio di recupero (giorni): {avg_recovery_time:.2f}")'''
+        
+        return result
         
         
 #--------------------------QUERY 8------------------------------------------------
@@ -518,6 +595,41 @@ class QueryManager:
         avg_difference = df_aggregated.agg(avg("score_difference").alias("avg_difference")).collect()[0][0]
         print(f"\nDifferenza media complessiva: {avg_difference:.2f}")
         
+        return df_aggregated
+    
+    def reputation_analysis_single(self, hotel_name, recent_reviews=30):
+        """
+        Analizza la differenza tra il punteggio medio storico di un hotel e il punteggio medio delle recensioni recenti.
+        """
+        df = self.spark.df_finale.filter(col("Hotel_Name") == hotel_name)
+
+        if df.count() == 0:
+            print(f"Nessuna recensione trovata per l'hotel: {hotel_name}")
+            return None
+
+        # Calcolo del punteggio medio storico per l'hotel specificato
+        avg_historical_window = Window.partitionBy("Hotel_Name")
+        df = df.withColumn(
+            "avg_historical_score", avg("Reviewer_Score").over(avg_historical_window)
+        )
+
+        # Calcolo del punteggio medio delle recensioni recenti (finestra di N recensioni)
+        recent_reviews_window = Window.partitionBy("Hotel_Name").orderBy(desc("Review_Date")).rowsBetween(0, recent_reviews - 1)
+        df = df.withColumn(
+            "avg_recent_score", avg("Reviewer_Score").over(recent_reviews_window)
+        )
+
+        # Estrazione di una singola riga con i dati aggregati
+        df_aggregated = df.groupBy("Hotel_Name").agg(
+            first("avg_historical_score").alias("avg_historical_score"),
+            first("avg_recent_score").alias("avg_recent_score")
+        )
+
+        # Calcolo della differenza tra il punteggio recente e quello storico
+        df_aggregated = df_aggregated.withColumn(
+            "score_difference", col("avg_recent_score") - col("avg_historical_score")
+        )
+
         return df_aggregated
                 
 #-----------------------QUERY 9------------------------------------------------
@@ -571,7 +683,7 @@ class QueryManager:
         ).show().filter(col("Hotel_Name") == "Number Sixteen")'''
 
         df_fin = extreme_reviews.filter(col("Hotel_Name")==hotelName).select(
-             "Reviewer_Score", "Positive_Review", "Negative_Review"
+             "Reviewer_Score", "Avg_Score", "Positive_Review", "Negative_Review"
         ).orderBy(asc("Reviewer_Score"))
         
         return df_fin
@@ -721,7 +833,7 @@ class QueryManager:
         """
 
         # Estrarre la città dall'indirizzo dell'hotel (ipotizzando che sia alla fine dell'indirizzo)
-        df_nuovo = self.spark.df_finale.filter(col("Hotel_Address").contains(city) & array_contains(col("Tags"),tag)).groupBy("Hotel_Name").agg(
+        df_nuovo = self.spark.df_finale.filter(col("Hotel_Address").contains(city) & array_contains(col("Tags"),tag)).groupBy("Hotel_Name", "Hotel_Address").agg(
             avg("Reviewer_Score").alias("avg_score") 
         ).orderBy(desc("avg_score"))
         
