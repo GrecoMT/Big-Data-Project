@@ -1,9 +1,10 @@
 import requests
 from urllib.parse import quote
+from pyspark.sql.functions import explode, col,count, desc, lower
+import plotly.express as px
+
 import math
 import numpy as np
-
-#import per prova grafico trend.
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -106,7 +107,7 @@ def get_season(month):
     else:
         return "Autumn"
 
-def graficoTrend(dataframe):
+def graficoTrend(dataframe, single : bool):
     trend_pandas = dataframe.toPandas()
     # Impostare stile del grafico
     sns.set(style="whitegrid")
@@ -121,7 +122,10 @@ def graficoTrend(dataframe):
         sns.lineplot(data=hotel_data, x="YearMonth", y="Average_Score", marker="o", label=hotel)
 
     # Migliorare l'estetica del grafico
-    plt.title("Trend dello Score Medio per Mese (per Hotel)", fontsize=16)
+    if single:
+        plt.title("Trend dello Score Medio per Mese", fontsize=16)
+    else:
+        plt.title("Trend dello Score Medio per Mese degli hotel vicini", fontsize=16)
     plt.xlabel("Anno/Mese", fontsize=12)
     plt.ylabel("Punteggio Medio", fontsize=12)
     plt.xticks(rotation=45)
@@ -134,5 +138,61 @@ def graficoTrend(dataframe):
     #Return necessario per inserire il grafico nel frontend
     return plt 
     
+
+def get_most_used_tags(df):
+    """
+    DataFrame df con una colonna "tags" di tipo ARRAY<STRING>.
+    Restituisce una lista ordinata dei tag più usati con il loro conteggio.
+
+    top_n: Numero massimo di tag da restituire (default: 10).
+    """
+    # Esplodere l'array "tags" in valori singoli
+    tags_df = df.select(explode(col("tags")).alias("tag"))
+
+    # Contare la frequenza di ogni tag e ordinarli in ordine decrescente
+    tags_count_df = tags_df.groupBy("tag").agg(count("*").alias("count")).orderBy(desc("count"))
     
+    tags = tags_count_df.select("tag")
     
+    return tags
+
+   
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])  # Converti in radianti
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return 2 * R * math.asin(math.sqrt(a)) * 1000  # Converti in metri
+ 
+
+
+def plot_pie_chart(df, city):
+    """
+    Genera un pie chart per mostrare la distribuzione dei tag in una città.
+    """
+    # Filtra il DataFrame per la città selezionata
+    city_df = df.filter(col("Hotel_Address").contains(city))
+
+    # Esplodi i tag (ARRAY<STRING> -> righe singole)
+    tags_df = city_df.select(explode(col("tags")).alias("tag"))
+ 
+
+    # Conta i tag
+    tag_counts = tags_df.groupBy("tag").agg(count("*").alias("count")).orderBy(desc("count"))
+    
+
+    # Converti in Pandas per Plotly
+    tag_counts_pd = tag_counts.toPandas()
+    
+    top_10 = tag_counts_pd[:10]
+    
+    others_count = tag_counts_pd[10:]["count"].sum()
+    
+    if others_count > 0:
+        top_10 = top_10.append({"tag": "Other", "count": others_count}, ignore_index=True)
+
+    fig = px.pie(top_10, values="count", names="tag", title=f"Distribuzione dei tag per {city}")
+    return fig
+
+

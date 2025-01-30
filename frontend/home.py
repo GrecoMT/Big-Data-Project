@@ -7,9 +7,6 @@ from backend import SparkBuilder
 
 from streamlit_folium import st_folium
 
-# Percorso dataset
-#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 # Configurazione avanzata della pagina
 st.set_page_config(
@@ -31,7 +28,7 @@ st.sidebar.markdown("- 📝 **Word Cloud**")
 @st.cache_resource
 def get_spark_and_query_manager():
     """Inizializza SparkBuilder e QueryManager."""
-    spark_builder = SparkBuilder("BigDataProject", dataset_path)
+    spark_builder = SparkBuilder("BigDataProject")
     query_manager = spark_builder.queryManager
     return query_manager
 

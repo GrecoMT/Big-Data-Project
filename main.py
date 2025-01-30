@@ -10,10 +10,9 @@ if __name__ == '__main__':
     
     clear_terminal()
     
-    '''export_path="/Users/vincenzopresta/Desktop/Big Data/progetto/coherence_analysis"
-    dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"'''
-    dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
-    spark_builder = SparkBuilder(appname="BigData_App", dataset_path=dataset_path)
+    #export_path="/Users/vincenzopresta/Desktop/Big Data/progetto/coherence_analysis"
+
+    spark_builder = SparkBuilder(appname="BigData_App")
 
     # Controlla se i dati sono puliti
     #spark_builder.df_finale.select([F.count(F.when(F.col(c).isNull(), 1)).alias(c) for c in spark_builder.df_finale.columns]).show()
@@ -59,6 +58,9 @@ if __name__ == '__main__':
     #query_manager.recovery_time_analysis(n=100)
     #query_manager.reputation_analysis(n=100)
     #query_manager.seasonal_sentiment_analysis(n=100)
-    x = query_manager.anomaly_detection()
-    print(x.toPandas().to_string())
+    #x = query_manager.nearby_hotels(45.48244094848633,9.175698280334473)
+    #x.show(20, truncate=True)
     #query_manager.location_influence(10)
+
+    result = query_manager.get_hotels_by_tag(city="London", tag="Suite 2 Adults")
+    result.show()

@@ -3,12 +3,8 @@ from pyspark import SparkConf
 
 from pyspark.sql.types import IntegerType, FloatType, StringType, BooleanType
 
-from pyspark.sql.functions import (regexp_replace, split, expr, col, to_date, regexp_extract, udf, count, avg, first, explode, abs, desc, stddev, coalesce, to_date, when, date_format, datediff, row_number, lower) #ricordare di rimuovere gli import non usati
-
+from pyspark.sql.functions import (regexp_replace, split, expr, col, to_date, regexp_extract, udf, count, array_contains, avg, first, explode, abs, desc, asc, stddev, coalesce, to_date, when, date_format, datediff, row_number, lower, lit) #ricordare di rimuovere gli import non usati
 import utils
-
-#update 28gennaio: cablaggio di un query manager all'interno dello spark builder
-#from query_manager import QueryManager
 
 from pyspark.sql.window import Window
 from sklearn.cluster import DBSCAN
@@ -18,12 +14,13 @@ from season_sentiment_analysis import SeasonSentimentAnalysis
 
 import folium
 
-import nltk
 from nltk.corpus import wordnet
 
+dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 class SparkBuilder:
-    def __init__(self, appname: str, dataset_path: str):
+    def __init__(self, appname: str):
         
         conf = SparkConf() \
             .set("spark.driver.memory", "8g") \
@@ -574,8 +571,8 @@ class QueryManager:
         ).show().filter(col("Hotel_Name") == "Number Sixteen")'''
 
         df_fin = extreme_reviews.filter(col("Hotel_Name")==hotelName).select(
-            "Hotel_Name", "Reviewer_Score", "Avg_Score", "Positive_Review", "Negative_Review"
-        )
+             "Reviewer_Score", "Positive_Review", "Negative_Review"
+        ).orderBy(asc("Reviewer_Score"))
         
         return df_fin
         
@@ -710,4 +707,44 @@ class QueryManager:
             avg("Reviewer_Score").alias("Average_Score")
         ).orderBy("Hotel_Name", "YearMonth")
 
-        return utils.graficoTrend(trend_df)
+        return utils.graficoTrend(trend_df, True)
+
+    
+#------------------QUERY X+1 --------------------------------
+    #in base al tag scelto restituire hotel che hanno quei tag con recensione più alta / bassa.
+
+    def get_hotels_by_tag(self, city, tag):
+        """
+        city: Nome della città su cui filtrare gli hotel
+        selected_tag: Tag selezionato per filtrare gli hotel
+        order: "highest" per punteggio più alto, "lowest" per punteggio più basso
+        """
+
+        # Estrarre la città dall'indirizzo dell'hotel (ipotizzando che sia alla fine dell'indirizzo)
+        df_nuovo = self.spark.df_finale.filter(col("Hotel_Address").contains(city) & array_contains(col("Tags"),tag)).groupBy("Hotel_Name").agg(
+            avg("Reviewer_Score").alias("avg_score") 
+        ).orderBy(desc("avg_score"))
+        
+        return df_nuovo
+    
+#------------QUERY x : HOTEL VICINI----------------------------------------------------------------
+# Funzione per filtrare gli hotel
+    def get_nearby_hotels(self, user_lat, user_lng, max_distance=1000):
+        # Registra la funzione come UDF
+        haversine_udf = udf(lambda lat, lng, user_lat, user_lng: utils.haversine(lat, lng, user_lat, user_lng))
+        df_hotels = self.spark.df_finale
+        return df_hotels.withColumn(
+            "distance", haversine_udf(col("lat"), col("lng"), lit(user_lat), lit(user_lng))
+        ).filter(col("distance") <= max_distance)
+    
+    def trend_mensile_compare(self, dataframe):
+        
+        #Creazione colonna "YearMonth" che contiene l'anno e il mese
+        df_trend = dataframe.withColumn("YearMonth", date_format(col("Review_Date"), "yyyy-MM"))
+        
+        # Aggregare per "Hotel_Name" e "YearMonth" e calcolare la media degli score
+        trend_df = df_trend.groupBy("Hotel_Name", "YearMonth").agg(
+            avg("Reviewer_Score").alias("Average_Score")
+        ).orderBy("Hotel_Name", "YearMonth")
+
+        return utils.graficoTrend(trend_df, False)  
