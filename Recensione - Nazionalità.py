@@ -23,7 +23,7 @@ def nationality_review_analysis_cached(n, min_reviews): # MA PERCHE CAZZO NON FU
 def get_reviews_for_nationality(nationality):
     # Filtra i dati per la nazionalità selezionata
     if nationality:
-        return spark.df_finale.filter(col("Reviewer_Nationality") == nationality).select("Hotel_Name", "Review_Date", "Reviewer_Nationality", "Negative_Review", "Review_Total_Negative_Word_Counts", "Positive_Review", "Review_Total_Positive_Word_Counts", "Reviewer_Score", "Tags", ).toPandas()
+        return spark.df_finale.filter(col("Reviewer_Nationality") == nationality).toPandas()
     return pd.DataFrame()  # Restituisce un DataFrame vuoto se non è selezionata una nazionalità
 
 @st.cache_data
@@ -57,12 +57,11 @@ nationality_reviews = nationality_review_analysis_cached(n, min_reviews)
 
 # Ottieni le coordinate per le nazionalità
 unique_nationalities = nationality_reviews["Reviewer_Nationality"].unique()
-if "coordinates" not in st.session_state:
-        st.session_state.coordinates = get_coordinates(unique_nationalities)
+coordinates = get_coordinates(unique_nationalities)
 
 # Prepara il DataFrame per la mappa
 map_data = nationality_reviews.copy()
-map_data["coordinates"] = map_data["Reviewer_Nationality"].map(st.session_state.coordinates)
+map_data["coordinates"] = map_data["Reviewer_Nationality"].map(coordinates)
 map_data = map_data.dropna(subset=["coordinates"])
 map_data["lat"] = map_data["coordinates"].apply(lambda x: x[0])
 map_data["lon"] = map_data["coordinates"].apply(lambda x: x[1])
@@ -106,8 +105,8 @@ if selected_nationality:
         st.dataframe(reviews)
 
         # Grafici delle recensioni
-        st.write("📈 Conteggio recensioni non sufficienti e sufficienti:")
-        st.bar_chart(reviews["Reviewer_Score"].apply(lambda x: "Negative (<6)" if x < 6 else "Positive (≥6)").value_counts())
+        st.write("📈 Lunghezza media delle recensioni:")
+        st.bar_chart(reviews[["Review_Total_Positive_Word_Counts", "Review_Total_Negative_Word_Counts"]])
     else:
         st.warning("Nessuna recensione trovata per questa nazionalità.")
 else:

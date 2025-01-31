@@ -1,8 +1,6 @@
 from backend import SparkBuilder
 import streamlit as st
-import utils
 import matplotlib.pyplot as plt
-import pandas as pd
 from wordcloud import WordCloud
 
 st.set_page_config(page_title="Analisi delle Parole", layout="wide")
