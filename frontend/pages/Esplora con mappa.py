@@ -91,7 +91,7 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
         reputation_single = spark.queryManager.recovery_time_analysis_single(hotel_selezionato)
         st.table(reputation_single)
 
-    with st.spinner(f"Confronto con hotel vicini a {hotel_selezionato}..."):
+    with st.spinner(f"Confronto con hotel vicini (nel raggio di 1km) a {hotel_selezionato}..."):
         hotel_lat = map_data.get("last_object_clicked").get("lat")
         hotel_lng = map_data.get("last_object_clicked").get("lng")
         st.write(f"**Trend hotel vicini a {hotel_selezionato}:**")
