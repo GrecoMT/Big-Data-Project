@@ -10,6 +10,8 @@ import seaborn as sns
 
 import pandas as pd
 
+from nltk.corpus import wordnet
+
 def fix_suspicious_spaces(address):
     corrections = {
         "Damr mont": "Damrémont",
@@ -74,31 +76,6 @@ def get_lng(address):
     _, lng = get_coordinates_osm(address)
     return lng
 
-
-#----CLUSTERING UTILS FUNC----------
-def calculate_cluster_center(df_cluster):
-    center_lat = np.mean(df_cluster["lat"])
-    center_lng = np.mean(df_cluster["lng"])
-    return center_lat, center_lng
-
-def calculate_lat_lng_radius(center_lat, radius_km):
-    delta_lat = radius_km / 111  # Delta latitudine
-    delta_lng = radius_km / (111 * math.cos(math.radians(center_lat)))  # Delta longitudine
-    return delta_lat, delta_lng
-
-def calculate_cluster_radius(df_cluster, center_lat, center_lng):
-    distances = []
-    for _, row in df_cluster.iterrows():
-        # Calcola la distanza Haversine in km
-        lat_diff = np.radians(row["lat"] - center_lat)
-        lng_diff = np.radians(row["lng"] - center_lng)
-        a = np.sin(lat_diff / 2) ** 2 + np.cos(np.radians(center_lat)) * np.cos(np.radians(row["lat"])) * np.sin(lng_diff / 2) ** 2
-        c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
-        distances.append(6371 * c)  # Raggio della Terra in km
-    return max(distances)
-
-#----------------------------------------------------------------
-
 def get_season(month):
     if month in [12, 1, 2]:
         return "Winter"
@@ -139,7 +116,6 @@ def graficoTrend(dataframe, single : bool):
     #plt.show()
     #Return necessario per inserire il grafico nel frontend
     return plt 
-    
 
 def get_most_used_tags(df):
     """
@@ -158,7 +134,6 @@ def get_most_used_tags(df):
     
     return tags
 
-   
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])  # Converti in radianti
@@ -167,8 +142,6 @@ def haversine(lat1, lon1, lat2, lon2):
     a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
     return 2 * R * math.asin(math.sqrt(a)) * 1000  # Converti in metri
  
-
-
 def plot_pie_chart(df, city):
     """
     Genera un pie chart per mostrare la distribuzione dei tag in una città.
@@ -196,4 +169,11 @@ def plot_pie_chart(df, city):
     fig = px.pie(top_10, values="count", names="tag", title=f"Distribuzione dei tag per {city}")
     return fig
 
-
+def is_adjective_or_adverb(word):
+    """
+    Determina se una parola è un aggettivo (a) o un avverbio (r) utilizzando WordNet.
+    """
+    synsets = wordnet.synsets(word)
+    if not synsets:
+        return False
+    return any(s.pos() == 'a' or s.pos()=='r' for s in synsets)

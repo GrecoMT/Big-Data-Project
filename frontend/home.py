@@ -5,9 +5,6 @@ import streamlit as st
 
 from backend import SparkBuilder
 
-from streamlit_folium import st_folium
-
-
 # Configurazione avanzata della pagina
 st.set_page_config(
     page_title="Hotel Dataset Analysis",

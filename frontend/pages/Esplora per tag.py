@@ -31,13 +31,14 @@ city_coords = {
     "Vienna": [48.2082, 16.3738],
     "Barcellona": [41.3851, 2.1734],
     "Londra": [51.5074, -0.1278],
-    "Parigi": [48.8566, 2.3522]
+    "Parigi": [48.8566, 2.3522],
+    "Amsterdam" : [52.3709, 4.8902]
 }
 
 if "selected_button" not in st.session_state:
     st.session_state.selected_button = None
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
     button1 = st.button('Milano')
@@ -49,6 +50,8 @@ with col4:
     button4 = st.button('Londra')
 with col5:
     button5 = st.button('Parigi')
+with col6:
+    button6 = st.button('Amsterdam')
     
 if button1:
     st.session_state.selected_button = "Milan"
@@ -60,6 +63,8 @@ elif button4:
     st.session_state.selected_button = "London"
 elif button5:
     st.session_state.selected_button = "Paris"
+elif button6:
+    st.session_state.selected_button = "Amsterdam"
 
 
 if st.session_state.selected_button: 

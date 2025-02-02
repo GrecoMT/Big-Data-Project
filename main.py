@@ -62,5 +62,6 @@ if __name__ == '__main__':
     #x.show(20, truncate=True)
     #query_manager.location_influence(10)
 
-    result = query_manager.get_hotels_by_tag(city="London", tag="Suite 2 Adults")
-    result.show()
+    result = query_manager.get_nearby_hotels(45.464098, 9.191926)
+    dff = result.toPandas()
+    print(dff.head())

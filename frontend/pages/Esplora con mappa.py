@@ -29,7 +29,8 @@ city_coords = {
     "Vienna": [48.2082, 16.3738],
     "Barcellona": [41.3851, 2.1734],
     "Londra": [51.5074, -0.1278],
-    "Parigi": [48.8566, 2.3522]
+    "Parigi": [48.8566, 2.3522],
+    "Amsterdam" : [52.3709, 4.8902]
 }
 
 st.sidebar.title("Seleziona una città")
@@ -61,7 +62,6 @@ map_data = st_folium(mappa, width=1000, height=550)
 
 
 # Controllo se l'utente ha selezionato un marker
-#Per il momento mette solamente il plot del trend mensile.
 if map_data and map_data.get('last_object_clicked_tooltip') != None:
     hotel_selezionato = map_data.get('last_object_clicked_tooltip')
     st.markdown(
@@ -85,17 +85,12 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
         st.write(f"**Confronto ultime recensioni con la media per {hotel_selezionato}:**")
         reputation_single = spark.queryManager.reputation_analysis_single(hotel_selezionato)
         st.table(reputation_single)
-    
-    with st.spinner(f"Recovery time analysis per {hotel_selezionato}..."):
-        st.write(f"**Recovery time analysis per {hotel_selezionato}:**")
-        reputation_single = spark.queryManager.recovery_time_analysis_single(hotel_selezionato)
-        st.table(reputation_single)
 
     with st.spinner(f"Confronto con hotel vicini (nel raggio di 1km) a {hotel_selezionato}..."):
         hotel_lat = map_data.get("last_object_clicked").get("lat")
         hotel_lng = map_data.get("last_object_clicked").get("lng")
         st.write(f"**Trend hotel vicini a {hotel_selezionato}:**")
-        nearby_hotels = spark.queryManager.get_nearby_hotels(hotel_lat,hotel_lng)
+        nearby_hotels = spark.queryManager.get_nearby_hotels(hotel_lat,hotel_lng, 1000)
         plt = spark.queryManager.trend_mensile_compare(nearby_hotels)
         st.pyplot(plt)
         

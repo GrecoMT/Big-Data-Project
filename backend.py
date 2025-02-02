@@ -3,21 +3,24 @@ from pyspark import SparkConf
 
 from pyspark.sql.types import IntegerType, FloatType, StringType, BooleanType
 
-from pyspark.sql.functions import (regexp_replace, split, expr, col, to_date, regexp_extract, udf, count, array_contains, avg, first, explode, abs, desc, asc, stddev, coalesce, to_date, when, date_format, datediff, row_number, lower, lit) #ricordare di rimuovere gli import non usati
+from pyspark.sql.functions import regexp_replace, split, expr, col, to_date, regexp_extract, udf, count, array_contains, avg, first, explode, abs, desc, asc, stddev, coalesce, to_date, when, date_format, lower, lit
+import pyspark.sql.functions as F
+
+
 import utils
 
 from pyspark.sql.window import Window
-from sklearn.cluster import DBSCAN
 
 from coherence_review_model_vader import CoherenceReviewModel
 from season_sentiment_analysis import SeasonSentimentAnalysis
 
-import folium
+import os
 
-from nltk.corpus import wordnet
+from Bert import BertTrainer
 
-dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+
+#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 class SparkBuilder:
     def __init__(self, appname: str):
@@ -134,16 +137,6 @@ class SparkBuilder:
         ret = df_merged.drop("lat_f", "lng_f")
         return ret
 
-#Da spostare in utils (fondamentale in query1)
-def is_adjective_or_adverb(word):
-    """
-    Determina se una parola è un aggettivo (a) o un avverbio (r) utilizzando WordNet.
-    """
-    synsets = wordnet.synsets(word)
-    if not synsets:
-        return False
-    return any(s.pos() == 'a' or s.pos()=='r' for s in synsets)
-
 
 class QueryManager:
     def __init__(self, spark_builder: SparkBuilder):
@@ -159,7 +152,7 @@ class QueryManager:
             n (int): Numero di parole da mostrare nelle classifiche.
             min_frequency (int): Frequenza minima di occorrenza delle parole per essere considerate.
         """
-        is_adjective_udf = udf(is_adjective_or_adverb, BooleanType())
+        is_adjective_udf = udf(utils.is_adjective_or_adverb, BooleanType())
         df = self.spark.df_finale
         
         # Tokenizza e filtra le parole aggettivi nelle recensioni positive
@@ -259,8 +252,7 @@ class QueryManager:
         return nationality_reviews
         
     # ------------------------------QUERY 3----------------------------------------------
-
-  #Influenza delle tag sullo scoring
+    #Influenza delle tag sullo scoring
     def tag_influence_analysis(self, n=10, min_count=100):
         """
         Analizza l'influenza delle tag sul punteggio dato, considerando solo i tag usati un numero minimo di volte.
@@ -301,59 +293,13 @@ class QueryManager:
         return filtered_tags
     
     # ------------------------------QUERY 4----------------------------------------------
-    # Analisi degli outlier: identificare discrepanze significative tra il punteggio medio di un hotel e il numero di recensioni positive e negative.
-    def outlier_analysis(self, score_threshold_high=8.5, score_threshold_low=5.0, review_threshold=10):
-        """
-        Identifica hotel con recensioni anomale:
-        - Punteggio alto, ma molte recensioni negative.
-        - Punteggio basso, ma molte recensioni positive.
-        """
-        df = self.spark.df_finale
-
-        # Raggruppa per hotel e calcola metriche
-        hotel_reviews = df.groupBy("Hotel_Address", "Hotel_Name") \
-            .agg(
-                avg("Reviewer_Score").alias("avg_score"),
-                sum(when(col("Negative_Review") != "No Negative", 1).otherwise(0)).alias("total_negative_reviews"),
-                sum(when(col("Positive_Review") != "No Positive", 1).otherwise(0)).alias("total_positive_reviews"),
-                count("*").alias("review_count")
-            )
-
-        # Outlier 1: Hotel con punteggio alto e molte recensioni negative
-        high_score_negative_reviews = hotel_reviews.filter(
-            (col("avg_score") > score_threshold_high) &
-            (col("total_negative_reviews") > review_threshold)
-        )
-
-        print("\nHotel con punteggio alto e molte recensioni negative:")
-        high_score_negative_reviews.select(
-            "Hotel_Name", "Hotel_Address", "avg_score", 
-            "total_negative_reviews", "total_positive_reviews", "review_count"
-        ).show(truncate=False)
-
-        # Outlier 2: Hotel con punteggio basso e molte recensioni positive
-        low_score_positive_reviews = hotel_reviews.filter(
-            (col("avg_score") < score_threshold_low) &
-            (col("total_positive_reviews") > review_threshold)
-        )
-
-        print("\nHotel con punteggio basso e molte recensioni positive:")
-        low_score_positive_reviews.select(
-            "Hotel_Name", "Hotel_Address", "avg_score", 
-            "total_positive_reviews", "total_negative_reviews", "review_count"
-        ).show(truncate=False)
-        
-        #CAPIRE COSA RITORNARE ORA NON HO TEMPO
-
-    # ------------------------------QUERY 5----------------------------------------------
     #Analisi della lunghezza: verificare se recensioni più lunghe tendono ad essere più positive o negative. (TODO)
     def review_length_analysis(self, n=20):
         """
         Analizza la lunghezza delle recensioni e verifica se recensioni più lunghe 
         tendono ad essere più positive o negative.
         """
-        df = self.spark.df_finale
-        df.filter((col("Review_Total_Positive_Word_Counts") > 0) | (col("Review_Total_Negative_Word_Counts") > 0)) #aggiunto per ottimizzare, filtro le recensioni vuote
+        df = self.spark.df_finale.filter((col("Review_Total_Positive_Word_Counts") > 0) | (col("Review_Total_Negative_Word_Counts") > 0)) #aggiunto per ottimizzare, filtro le recensioni vuote
         
         # Calcolo della lunghezza media delle recensioni positive e negative per punteggio
         review_length = df.groupBy("Reviewer_Score") \
@@ -363,20 +309,12 @@ class QueryManager:
                 count("*").alias("review_count")
             ).orderBy("Reviewer_Score")
 
-        print("\nLunghezza media delle recensioni positive e negative per punteggio:")
-        review_length.show(n, truncate=False)
-
-        # Analisi generale: recensioni più lunghe tendono ad essere più positive o negative?
-        avg_positive = df.agg(avg("Review_Total_Positive_Word_Counts").alias("overall_avg_positive_length")).collect()[0][0]
-        avg_negative = df.agg(avg("Review_Total_Negative_Word_Counts").alias("overall_avg_negative_length")).collect()[0][0]
-
-        print(f"\nLunghezza media generale delle recensioni positive: {avg_positive:.2f}")
-        print(f"Lunghezza media generale delle recensioni negative: {avg_negative:.2f}")
+        #print("\nLunghezza media delle recensioni positive e negative per punteggio:")
+        #review_length.show(n, truncate=False)
+        return review_length
         
-        return df
-        
-#--------------------------QUERY 6------------------------------------------------
-#Analisi della coerenza tra recensioni e punteggi:predire il punteggio basato sul contenuto della recensione e confrontarlo con il punteggio effettivamente dato TODO
+    #--------------------------QUERY 5------------------------------------------------
+    #Analisi della coerenza tra recensioni e punteggi:predire il punteggio basato sul contenuto della recensione e confrontarlo con il punteggio effettivamente dato TODO
     def coherence_analysis(self, threshold=2.0,n=10, export_path=None):
         """
         Richiama l'analisi del modello di sentiment e coerenza.
@@ -393,165 +331,8 @@ class QueryManager:
         predictions = sentiment_model.analyze_consistency(threshold,n, export_path) # treshold serve a defnire un limite massimo accettabile per l'errore assoluto tra il punteggio predetto dal modello e il punteggio reale
         
         return predictions
-        
-        
-#--------------------------QUERY 7------------------------------------------------
-#Durata della percezione negativa: analizzare se la percezione negativa diminuisce nel tempo. TODO (forse togliere)
-    def recovery_time_analysis(self, n=20):
-        """
-        Analizza quanto tempo ci vuole affinché un hotel passi da una recensione negativa (<6)
-        a una recensione positiva (>6). Calcola medie per ogni fase e verifica il trend futuro.
-        """
-        df = self.spark.df_finale
 
-        # Ordina le recensioni per hotel e data
-        #window_spec = Window.partitionBy("Hotel_Name").orderBy("Review_Date")
-
-        # Finestra di 10 recensioni precedenti per calcolare la media
-        window_prev = Window.partitionBy("Hotel_Name").orderBy("Review_Date").rowsBetween(-10, 0)
-
-        # Finestra di 5 recensioni successive per il trend dopo la positiva
-        window_after_positive = Window.partitionBy("Hotel_Name").orderBy("Review_Date").rowsBetween(1, 5)
-
-        # Calcolo di avg_after_negative (considerando tutte le recensioni precedenti)
-        df = df.withColumn("avg_after_negative", avg("Reviewer_Score").over(window_prev))
-
-        # Filtra recensioni negative
-        df_negative = df.filter(col("Reviewer_Score") < 6).withColumnRenamed(
-            "Reviewer_Score", "Negative_Score"
-        ).withColumnRenamed("Review_Date", "Negative_Review_Date").withColumnRenamed(
-            "avg_after_negative", "avg_after_negative_score"
-        )
-
-        # Filtra recensioni positive
-        df_positive = df.filter(col("Reviewer_Score") > 6).withColumn(
-            "avg_trend_after_positive",
-            avg("Reviewer_Score").over(window_after_positive)
-        ).withColumnRenamed("Reviewer_Score", "Positive_Score").withColumnRenamed(
-            "Review_Date", "Positive_Review_Date"
-        )
-
-        # Join tra recensioni negative e positive
-        df_recovery = df_positive.join(
-            df_negative,
-            on="Hotel_Name",
-            how="inner"
-        ).withColumn(
-            "days_between",
-            datediff(col("Positive_Review_Date"), col("Negative_Review_Date"))
-        ).filter(col("days_between") > 0)  # Escludi casi senza recupero
-
-        # Calcolo di avg_after_positive
-        df_recovery = df_recovery.withColumn(
-            "avg_after_positive",
-            (col("avg_after_negative_score") + col("Positive_Score")) / 2
-        )
-
-        # Filtro per il days_between minimo per ogni hotel
-        window_min_days = Window.partitionBy("Hotel_Name").orderBy("days_between")
-        df_recovery_filtered = df_recovery.withColumn(
-            "rank", row_number().over(window_min_days)
-        ).filter(col("rank") == 1)  # Mantieni solo la riga con il days_between minimo
-
-        # Calcola il tempo medio di recupero
-        avg_recovery_time = df_recovery_filtered.agg(avg("days_between").alias("avg_recovery_time")).collect()[0][0]
-
-        # Seleziona i risultati finali
-        result = df_recovery_filtered.select(
-            "Hotel_Name",
-            "avg_after_negative_score",
-            "Negative_Score",
-            "days_between",
-            "Positive_Score",
-            "avg_after_positive",
-            "avg_trend_after_positive"
-        ).distinct().orderBy("Hotel_Name", "days_between")
-
-        print("\nRisultati per ogni hotel:")
-        result.show(n, truncate=False)
-        print(f"\nTempo medio di recupero (giorni): {avg_recovery_time:.2f}")
-        
-        return result
-    
-    def recovery_time_analysis_single(self, hotel_name):
-        """
-        Analizza quanto tempo ci vuole affinché un hotel passi da una recensione negativa (<6)
-        a una recensione positiva (>6). Calcola medie per ogni fase e verifica il trend futuro.
-        Può essere limitato a un hotel specifico.
-        """
-        df = self.spark.df_finale
-
-        # Se un hotel specifico è stato passato, filtriamo il DataFrame
-        if hotel_name:
-            df = df.filter(df["Hotel_Name"] == hotel_name)
-
-        # Ordina le recensioni per hotel e data
-        window_prev = Window.partitionBy("Hotel_Name").orderBy("Review_Date").rowsBetween(-10, 0)
-        window_after_positive = Window.partitionBy("Hotel_Name").orderBy("Review_Date").rowsBetween(1, 5)
-
-        # Calcolo di avg_after_negative (considerando tutte le recensioni precedenti)
-        df = df.withColumn("avg_after_negative", avg("Reviewer_Score").over(window_prev))
-
-        # Filtra recensioni negative
-        df_negative = df.filter(col("Reviewer_Score") < 6).withColumnRenamed(
-            "Reviewer_Score", "Negative_Score"
-        ).withColumnRenamed("Review_Date", "Negative_Review_Date").withColumnRenamed(
-            "avg_after_negative", "avg_after_negative_score"
-        )
-
-        # Filtra recensioni positive
-        df_positive = df.filter(col("Reviewer_Score") > 6).withColumn(
-            "avg_trend_after_positive",
-            avg("Reviewer_Score").over(window_after_positive)
-        ).withColumnRenamed("Reviewer_Score", "Positive_Score").withColumnRenamed(
-            "Review_Date", "Positive_Review_Date"
-        )
-
-        # Join tra recensioni negative e positive
-        df_recovery = df_positive.join(
-            df_negative,
-            on="Hotel_Name",
-            how="inner"
-        ).withColumn(
-            "days_between",
-            datediff(col("Positive_Review_Date"), col("Negative_Review_Date"))
-        ).filter(col("days_between") > 0)  # Escludi casi senza recupero
-
-        # Calcolo di avg_after_positive
-        df_recovery = df_recovery.withColumn(
-            "avg_after_positive",
-            (col("avg_after_negative_score") + col("Positive_Score")) / 2
-        )
-
-        # Filtro per il days_between minimo per ogni hotel
-        window_min_days = Window.partitionBy("Hotel_Name").orderBy("days_between")
-        df_recovery_filtered = df_recovery.withColumn(
-            "rank", row_number().over(window_min_days)
-        ).filter(col("rank") == 1)  # Mantieni solo la riga con il days_between minimo
-
-        # Calcola il tempo medio di recupero
-        avg_recovery_time = df_recovery_filtered.agg(avg("days_between").alias("avg_recovery_time")).collect()[0][0]
-
-        # Seleziona i risultati finali
-        result = df_recovery_filtered.select(
-            "Hotel_Name",
-            "avg_after_negative_score",
-            "Negative_Score",
-            "days_between",
-            "Positive_Score",
-            "avg_after_positive",
-            "avg_trend_after_positive"
-        ).distinct().orderBy("Hotel_Name", "days_between")
-
-        '''print("\nRisultati per l'hotel:", hotel_name if hotel_name else "Tutti gli hotel")
-        result.show(n, truncate=False)
-        print(f"\nTempo medio di recupero (giorni): {avg_recovery_time:.2f}")'''
-        
-        return result
-        
-        
-#--------------------------QUERY 8------------------------------------------------
-
+#--------------------------QUERY 6------------------------------------------------
     #Analisi della reputazione: differenza tra il punteggio medio storico di un hotel e il punteggio medio delle recensioni recenti
     def reputation_analysis(self, recent_reviews=30, n=20, score_difference = -1):
         """
@@ -631,11 +412,12 @@ class QueryManager:
 
         return df_aggregated
                 
-#-----------------------QUERY 9------------------------------------------------
+#--------------------------- QUERY 7------------------------------------------------
     #Analisi del sentiment in base alla stagione TODO
     def seasonal_sentiment_analysis(self, n=4):
         """
         Analizza come il sentiment medio delle recensioni varia in base alla stagione dell'anno.
+        Utilizza VADER -> rule based e lessico
         """
         # Preprocessa i dati usando la classe SeasonSentimentAnalysis
         sentiment_analysis = SeasonSentimentAnalysis(self.spark.df_finale)
@@ -646,18 +428,15 @@ class QueryManager:
             avg("Net_Sentiment").alias("avg_sentiment"),
             avg("Reviewer_Score").alias("avg_reviewer_score"),
             count("*").alias("review_count")
-        ).withColumn(
-            "sentiment_reviewer_delta",
-            (col("avg_sentiment") - (col("avg_reviewer_score"))/10) #normalizziamo perchè altrimenti sarà sempre negativo, chi fantasia cu si query ma non potevamo fare una cosa ridicola???
         ).orderBy("Hotel_Name", "Season")
 
         # Mostra i risultati
-        print("\nSentiment medio per stagione:")
-        seasonal_sentiment.show(n, truncate=False)
+        #print("\nSentiment medio per stagione:")
+        #seasonal_sentiment.show(n, truncate=False)
         
         return seasonal_sentiment
         
-#-----------------------QUERY 10------------------------------------------------
+    #-----------------------QUERY 8------------------------------------------------
     #Identificare recensioni sospette tipo recensioni estremamente positive o negative che differiscono significativamente dal trend generale dell’hotel
     def anomaly_detection(self, hotelName):
         
@@ -677,95 +456,14 @@ class QueryManager:
             abs(col("Reviewer_Score") - col("Avg_Score")) > (2 * col("Std_Dev_Score"))
         )
 
-        # Visualizza le recensioni anomale
-        '''df_fin = extreme_reviews.select(
-            "Hotel_Name", "Reviewer_Score", "Avg_Score", "Positive_Review", "Negative_Review",
-        ).show().filter(col("Hotel_Name") == "Number Sixteen")'''
-
         df_fin = extreme_reviews.filter(col("Hotel_Name")==hotelName).select(
              "Reviewer_Score", "Avg_Score", "Positive_Review", "Negative_Review"
         ).orderBy(asc("Reviewer_Score"))
         
         return df_fin
-        
-#-----------------------QUERY 11------------------------------------------------
-    def location_influence(self, n=20):
-        
-        df = self.spark.df_finale
-        
-        # Filtra le colonne necessarie
-        df_geo = df.select("Hotel_Name", "Average_Score", "lat", "lng").distinct().dropna() 
-        df_geo.show()
-        
-        # Converti in Pandas per DBSCAN
-        sample_df = df_geo.limit(10000)
-        sample_pandas = sample_df.toPandas() #faccio così senno muore il processo
-
-        #df_geo_pandas = df_geo.toPandas()
-
-        # Prepara i dati per il clustering
-        coords = sample_pandas[["lat", "lng"]].to_numpy()
-
-        # Applica DBSCAN
-        dbscan = DBSCAN(eps=0.05, min_samples=5, metric="euclidean")
-        clusters = dbscan.fit_predict(coords)
-
-        # Aggiungi i cluster al DataFrame Pandas
-        sample_pandas["Cluster"] = clusters
-
-        # Ritorna i dati in Spark
-        df_clustered = self.spark.createDataFrame(sample_pandas)
-
-        # Analizza i cluster in Spark
-        # Calcola la posizione geografica media e il punteggio medio per ogni cluster
-        cluster_summary = df_clustered.groupBy("Cluster").agg(
-            avg("lat").alias("Avg_Lat"),
-            avg("lng").alias("Avg_Lng"),
-            avg("Average_Score").alias("Avg_Score"),
-            count("Hotel_Name").alias("Hotel_Count"),
-            first("Hotel_Name").alias("Example_Hotel")
-       )
-     
-        cluster_summary.show() #Lo vedo perche non sto capendo che caspita si prende
-        
-        # Filtra i dati per il cluster desiderato
-        cluster_data = sample_pandas[sample_pandas["Cluster"] == 0]
-
-        # Calcola centro e raggio del cluster
-        cluster_center_lat, cluster_center_lng = utils.calculate_cluster_center(cluster_data)
-        cluster_radius_km = utils.calculate_cluster_radius(cluster_data, cluster_center_lat, cluster_center_lng)
-
-        # Crea la mappa
-        m = folium.Map(location=[45.4654, 9.1859], zoom_start=6)
-        
-        # Itera su ogni cluster
-        for cluster_id in sample_pandas["Cluster"].unique():
-            if cluster_id == -1:  # Ignora i punti rumore
-                continue
-
-            # Filtra i dati del cluster corrente
-            cluster_data = sample_pandas[sample_pandas["Cluster"] == cluster_id]
-
-            # Calcola il centro e il raggio del cluster
-            cluster_center_lat, cluster_center_lng = utils.calculate_cluster_center(cluster_data)
-            cluster_radius_km = utils.calculate_cluster_radius(cluster_data, cluster_center_lat, cluster_center_lng)
-
-            # Aggiungi un cerchio per il cluster corrente
-            folium.Circle(
-                location=[cluster_center_lat, cluster_center_lng],
-                radius=cluster_radius_km * 1000,  # Converti il raggio in metri
-                color="blue",
-                fill=True,
-                fill_opacity=0.5,
-                popup=f"Cluster: {cluster_id}, Avg Rating: {cluster_data['Average_Score'].mean():.2f}"
-            ).add_to(m)
-
-        # Salva o mostra la mappa
-        #m.show_in_browser()
-        return m
-
-#--------------- COUNT RECENSIONI POS-NEG PER SEASON ---------------#
-    def prova_stagione(self):
+    
+    #--------------- QUERY 9 COUNT RECENSIONI POS-NEG PER SEASON ---------------#
+    def count_reviews_per_season(self):
         # UDF per calcolare la stagione
         season_udf = udf(lambda date: utils.get_season(date.month), StringType())
 
@@ -806,7 +504,7 @@ class QueryManager:
         # Mostrare il risultato
         final_result.show()'''
 
-#----------------- TREND MESE-ANNO  ------------------#
+#----------------- QUERY 10 TREND MESE-ANNO  ------------------#
     def trend_mensile(self, hotelName):
         # Filtrare i dati per l'hotel specificato
         df_trend = self.spark.df_finale.filter(col("Hotel_Name") == hotelName)
@@ -839,9 +537,9 @@ class QueryManager:
         
         return df_nuovo
     
-#------------QUERY SUPPORTO 2 : HOTEL VICINI----------------------------------------------------------------
-# Funzione per filtrare gli hotel
-    def get_nearby_hotels(self, user_lat, user_lng, max_distance=1000):
+    #------------QUERY SUPPORTO 2 : HOTEL VICINI----------------------------------------------------------------
+    # Funzione per filtrare gli hotel
+    def get_nearby_hotels(self, user_lat, user_lng, max_distance):
         # Registra la funzione come UDF
         haversine_udf = udf(lambda lat, lng, user_lat, user_lng: utils.haversine(lat, lng, user_lat, user_lng))
         df_hotels = self.spark.df_finale
@@ -861,3 +559,29 @@ class QueryManager:
         ).orderBy("Hotel_Name", "YearMonth")
 
         return utils.graficoTrend(trend_df, False)  
+    
+    #DA VALIDARE PER BERT
+    def coherence_analysis_BERT(self, threshold=2.0, n=10, export_path=None):
+        """
+        Analizza la coerenza tra recensioni e punteggi usando il modello BERT.
+        Se il modello non esiste nella cartella 'models/bert', lo addestra prima di eseguire l'analisi.
+        """
+        model_path = "models/bert_model"  # Percorso in cui salviamo il modello
+
+        # Controlla se il modello è già addestrato
+        if not os.path.exists(model_path):
+            print("Modello BERT non trovato. Addestramento in corso...")            
+            bert_model = BertTrainer(self.spark.df_finale, model_path=model_path)
+            bert_model.train_model()
+            
+            print("Modello BERT addestrato con successo!")
+        else:
+            print("Modello BERT trovato! Procedo con l'analisi...")
+
+        # 🔹 Carica il modello e esegue l'analisi di coerenza
+        bert_model = BertTrainer(self.spark.df_finale, model_path=model_path)
+        predictions = bert_model.analyze_consistency(threshold, n, export_path)
+
+        return predictions
+    
+    
