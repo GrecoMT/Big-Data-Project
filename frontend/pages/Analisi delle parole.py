@@ -30,7 +30,7 @@ st.sidebar.markdown("- 📝 **Word Cloud**")
 
 st.markdown("## Imposta i parametri di analisi:")
 n = st.slider("Numero di parole da visualizzare", 5, 50, 20)
-min_frequency = st.slider("Frequenza minima della parola", 100, 5000, 1000)
+min_frequency = st.selectbox("Frequenza minima della parola", [100, 1000, 5000])
 
 with st.spinner("⚙️ Elaborazione dati..."):
     positive_df, negative_df = wsa(n=n, min_frequency=min_frequency)

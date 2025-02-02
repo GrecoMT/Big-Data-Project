@@ -16,8 +16,8 @@ import folium
 
 from nltk.corpus import wordnet
 
-#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 class SparkBuilder:
     def __init__(self, appname: str):
@@ -346,7 +346,7 @@ class QueryManager:
         #CAPIRE COSA RITORNARE ORA NON HO TEMPO
 
     # ------------------------------QUERY 5----------------------------------------------
-    #Analisi della lunghezza: verificare se recensioni più lunghe tendono ad essere più positive o negative.
+    #Analisi della lunghezza: verificare se recensioni più lunghe tendono ad essere più positive o negative. (TODO)
     def review_length_analysis(self, n=20):
         """
         Analizza la lunghezza delle recensioni e verifica se recensioni più lunghe 
@@ -376,7 +376,7 @@ class QueryManager:
         return df
         
 #--------------------------QUERY 6------------------------------------------------
-#Analisi della coerenza tra recensioni e punteggi:predire il punteggio basato sul contenuto della recensione e confrontarlo con il punteggio effettivamente dato
+#Analisi della coerenza tra recensioni e punteggi:predire il punteggio basato sul contenuto della recensione e confrontarlo con il punteggio effettivamente dato TODO
     def coherence_analysis(self, threshold=2.0,n=10, export_path=None):
         """
         Richiama l'analisi del modello di sentiment e coerenza.
@@ -396,7 +396,7 @@ class QueryManager:
         
         
 #--------------------------QUERY 7------------------------------------------------
-#Durata della percezione negativa: analizzare se la percezione negativa diminuisce nel tempo.
+#Durata della percezione negativa: analizzare se la percezione negativa diminuisce nel tempo. TODO (forse togliere)
     def recovery_time_analysis(self, n=20):
         """
         Analizza quanto tempo ci vuole affinché un hotel passi da una recensione negativa (<6)
@@ -632,6 +632,7 @@ class QueryManager:
         return df_aggregated
                 
 #-----------------------QUERY 9------------------------------------------------
+    #Analisi del sentiment in base alla stagione TODO
     def seasonal_sentiment_analysis(self, n=4):
         """
         Analizza come il sentiment medio delle recensioni varia in base alla stagione dell'anno.
@@ -821,7 +822,7 @@ class QueryManager:
         return utils.graficoTrend(trend_df, True)
 
     
-#------------------QUERY X+1 --------------------------------
+#------------------QUERY SUPPORTO 1 --------------------------------
     #in base al tag scelto restituire hotel che hanno quei tag con recensione più alta / bassa.
 
     def get_hotels_by_tag(self, city, tag):
@@ -838,7 +839,7 @@ class QueryManager:
         
         return df_nuovo
     
-#------------QUERY x : HOTEL VICINI----------------------------------------------------------------
+#------------QUERY SUPPORTO 2 : HOTEL VICINI----------------------------------------------------------------
 # Funzione per filtrare gli hotel
     def get_nearby_hotels(self, user_lat, user_lng, max_distance=1000):
         # Registra la funzione come UDF
@@ -848,6 +849,7 @@ class QueryManager:
             "distance", haversine_udf(col("lat"), col("lng"), lit(user_lat), lit(user_lng))
         ).filter(col("distance") <= max_distance)
     
+    #Funzione per comparare il trend 
     def trend_mensile_compare(self, dataframe):
         
         #Creazione colonna "YearMonth" che contiene l'anno e il mese
