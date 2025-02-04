@@ -19,11 +19,17 @@ df_temp = dataframe.select("hotel_name", "hotel_address", "lat", "lng").distinct
 
 df = df_temp.toPandas()
 
-# Configurare la pagina di Streamlit
+st.sidebar.title("🔍 Navigazione")
+st.sidebar.markdown("### Sezioni disponibili:")
+
+st.sidebar.markdown("- 🏠 **Home**")
+st.sidebar.markdown("- 📍 **Mappa Hotel**")
+st.sidebar.markdown("- 📊 **Trend & Analisi**")
+st.sidebar.markdown("- 🔍 **Anomaly Detection**")
+st.sidebar.markdown("- 📝 **Word Cloud**")
 
 st.title("Mappa degli Hotel")
 
-#Coordinate città
 city_coords = {
     "Milano": [45.4642, 9.1900],
     "Vienna": [48.2082, 16.3738],
@@ -36,32 +42,20 @@ city_coords = {
 st.sidebar.title("Seleziona una città")
 selected_city = st.sidebar.radio("Città", list(city_coords.keys()))
 
-st.sidebar.title("🔍 Navigazione")
-st.sidebar.markdown("### Sezioni disponibili:")
+st.subheader(f"Città selezionata: {selected_city}")
 
-st.sidebar.markdown("- 🏠 **Home**")
-st.sidebar.markdown("- 📍 **Mappa Hotel**")
-st.sidebar.markdown("- 📊 **Trend & Analisi**")
-st.sidebar.markdown("- 🔍 **Anomaly Detection**")
-st.sidebar.markdown("- 📝 **Word Cloud**")
-
-# Creare una mappa con Folium
 mappa = folium.Map(location=city_coords[selected_city], zoom_start=12)
 
-# Aggiungere marker per ogni hotel
 for _, row in df.iterrows():
     folium.Marker(
         location=[row['lat'], row['lng']],
         popup=f"<b>{row['hotel_name']}</b><br>Latitudine: {row['lat']}<br>Longitudine: {row['lng']}<br><br>Indirizzo:{row['hotel_address']}<br>",
         tooltip=row['hotel_name'],
-        icon=folium.Icon(color='blue', icon='info-sign'),
+        icon=folium.Icon(color='darkblue', icon='fa-solid fa-hotel', prefix='fa'),
     ).add_to(mappa)
 
-# Mostrare la mappa in Streamlit
 map_data = st_folium(mappa, width=1000, height=550)
 
-
-# Controllo se l'utente ha selezionato un marker
 if map_data and map_data.get('last_object_clicked_tooltip') != None:
     hotel_selezionato = map_data.get('last_object_clicked_tooltip')
     st.markdown(

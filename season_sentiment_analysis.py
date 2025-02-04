@@ -10,7 +10,6 @@ def ensure_nltk_resources():
     except LookupError:
         nltk.download('vader_lexicon')
     
-
 sia = SentimentIntensityAnalyzer()
 
 def calculate_sentiment(text):

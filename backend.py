@@ -19,10 +19,10 @@ import os
 from Bert import BertTrainer
 
 
-#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
-dataset_path="C:/Users/Utente/Desktop/big data/dataset/Hotel_Reviews.csv"
+#dataset_path="C:/Users/Utente/Desktop/big data/dataset/Hotel_Reviews.csv"
 
 class SparkBuilder:
     def __init__(self, appname: str):
@@ -568,7 +568,7 @@ class QueryManager:
         Analizza la coerenza tra recensioni e punteggi usando il modello BERT.
         Se il modello non esiste nella cartella 'models/bert', lo addestra prima di eseguire l'analisi.
         """
-        model_path = "models/bert_model"  # Percorso in cui salviamo il modello
+        model_path = "/Users/vincenzopresta/Desktop/Big Data/progetto/bert_model"  # Percorso in cui salviamo il modello
 
         # Controlla se il modello è già addestrato
         if not os.path.exists(model_path):

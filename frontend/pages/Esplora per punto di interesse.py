@@ -7,6 +7,8 @@ from streamlit_folium import st_folium
 
 from pyspark.sql.functions import lit, col
 
+from folium.plugins import TagFilterButton
+
 
 st.set_page_config(page_title="Esplora per punto di interesse", layout="wide")
 
@@ -23,8 +25,9 @@ city_coords = {
 def getSpark(appName):
     return SparkBuilder("appName")
 
-def hotelVicini():
-    nearby_collected = nearby_hotels.collect()
+
+def hotelVicini(_dataframe):
+    nearby_collected = _dataframe.collect()
     result = None
     for row in nearby_collected:
         nome = row['hotel_name']
@@ -39,15 +42,113 @@ def hotelVicini():
     result = result.withColumn("distance", col("distance").cast("float"))
     result = result.withColumnRenamed("avg_historical_score", "Media recensioni")
     result = result.withColumnRenamed("avg_recent_score", "Media ultime recensioni")
-    #st.dataframe(result.toPandas())
     return result.toPandas()
 
+@st.cache_data
+def hotelVicini_pandas(dataframe):
+    result_list = []  # Lista per accumulare i risultati
+
+    for _, row in dataframe.iterrows():
+        nome = row['hotel_name']
+        distance = float(row['distance'])  # Convertiamo subito la distanza in float
+
+        # Simuliamo la funzione Spark queryManager.reputation_analysis_single(nome)
+        tmp = spark.queryManager.reputation_analysis_single(nome).toPandas()  # Deve restituire un DataFrame Pandas
+
+        # Se il DataFrame è vuoto, passiamo al prossimo hotel
+        if tmp.empty:
+            continue  
+
+        # Aggiungiamo la colonna "distance"
+        tmp = tmp.copy()  # Evita SettingWithCopyWarning
+        tmp["distance"] = distance
+
+        # Accumula il risultato
+        result_list.append(tmp)
+
+    # Unisce tutti i DataFrame in uno solo
+    if result_list:
+        result = pd.concat(result_list, ignore_index=True)
+    else:
+        result = pd.DataFrame(columns=["Hotel_Name", "avg_historical_score", "avg_recent_score", "distance"])
+
+    # Seleziona e rinomina le colonne finali
+    result = result[["Hotel_Name", "avg_historical_score", "avg_recent_score", "distance"]]
+    result = result.rename(columns={
+        "avg_historical_score": "Media recensioni",
+        "avg_recent_score": "Media ultime recensioni"
+    })
+
+    return result  # Restituisce un DataFrame Pandas
 
 spark = getSpark("BigData_App")
+
+st.sidebar.title("🔍 Navigazione")
+st.sidebar.markdown("### Sezioni disponibili:")
+
+st.sidebar.markdown("- 🏠 **Home**")
+st.sidebar.markdown("- 📍 **Mappa Hotel**")
+st.sidebar.markdown("- 📊 **Trend & Analisi**")
+st.sidebar.markdown("- 🔍 **Anomaly Detection**")
+st.sidebar.markdown("- 📝 **Word Cloud**")
+
+@st.cache_data
+def nearby_hotels(lat,lng):
+    nearby_hotels = spark.queryManager.get_nearby_hotels(lat, lng, 2000).select("hotel_name", "lat", "lng", "distance").distinct()
+    return nearby_hotels.toPandas()
 
 if "pois" not in st.session_state:
     st.session_state.pois = pd.read_csv("Others/PointOfInterest.csv", delimiter=";")
 
+def categoria_distanza(distanza):
+    if float(distanza) <= 500:
+        return "Entro 500 metri"
+    elif 500 < float(distanza) <= 1000:
+        return "Tra 500 e 1000 metri"
+    elif 1000 < float(distanza) <= 2000:
+        return "Tra 1000 e 2000 metri"
+
+
+@st.cache_data
+def createMap(nearby_hotels_p, poi):
+
+    dfp = st.session_state.pois
+    result = dfp.loc[dfp["Monument"] == poi, ["lat", "long"]].values
+
+    # Converte in array (lista Python)
+    coordinate = result[0].tolist() if len(result) > 0 else None
+
+    # Creare una mappa con Folium
+    mappa = folium.Map(location=coordinate, zoom_start=13.5)
+
+    #Aggiungere marker per ogni hotel
+    for _, row in nearby_hotels_p.iterrows():
+            category = categoria_distanza(row['distance'])
+            folium.Marker(
+                tags = [category],
+                location=[row['lat'], row['lng']],
+                tooltip=row['hotel_name'],
+                icon=folium.Icon(color='darkblue', icon='fa-solid fa-hotel', prefix='fa'),
+            ).add_to(mappa)
+
+    folium.Marker(
+            location=[lat, lng],
+            tooltip=poi.upper(),
+            icon = folium.Icon(color='darkred',  icon='fa-solid fa-monument', prefix='fa')          
+                    ).add_to(mappa)
+    
+    TagFilterButton(["Entro 500 metri", "Tra 500 e 1000 metri", "Tra 1000 e 2000 metri"]).add_to(mappa)
+
+        
+    radiuses = [(500, "green"), (1000, "blue"), (2000, "red")] #raggi in metri
+    for r in radiuses:
+        folium.Circle(
+            location=[lat, lng],
+            radius=r[0],
+            color=r[1],
+            fill=False
+        ).add_to(mappa)
+    return mappa
 
 st.title("Esplora per per punto di interesse")
 
@@ -62,49 +163,22 @@ poi = st.selectbox(label="Seleziona un punto di interesse", options=poi_in_city,
 
 if city != None and poi != None:
     poi_row = df[df['Monument']==poi]
-    #lat = float(poi_row["lat"])
-    #lng = float(poi_row["long"])
     lat = float(poi_row["lat"].iloc[0])
     lng = float(poi_row["long"].iloc[0])
 
-    #st.write(f"Città scelta: {city}, monumento scelto: {poi}. Latitudine poi: {lat}. Longitudine poi: {lng}")
+    nearby_hotels = nearby_hotels(lat, lng)
 
     st.markdown("""
     ### 🏨 **Hotel vicini al punto di interesse**
     - 🟢 **Cerchio Verde**: Hotel entro **500 metri** dal punto di interesse scelto.
     - 🔵 **Cerchio Blu**: Hotel tra **500 e 1000 metri** dal punto di interesse scelto.
     - 🔴 **Cerchio Rosso**: Hotel tra **1000 e 2000 metri** dal punto di interesse scelto.
+                
+    🗺️ **Filtra gli hotel per distanza direttamente sulla mappa**:
     """)
 
     with st.spinner("Individuo gli hotel vicini al punto di interese..."):
-        nearby_hotels = spark.queryManager.get_nearby_hotels(lat, lng, 2000).select("hotel_name", "lat", "lng", "distance").distinct()
-        nearby_hotels_p = nearby_hotels.toPandas()
-
-        # Creare una mappa con Folium
-        mappa = folium.Map(location=city_coords[city], zoom_start=12)
-
-        #Aggiungere marker per ogni hotel
-        for _, row in nearby_hotels_p.iterrows():
-            folium.Marker(
-                location=[row['lat'], row['lng']],
-                tooltip=row['hotel_name'],
-                icon=folium.Icon(color='blue', icon='info-sign'),
-            ).add_to(mappa)
-
-        folium.Marker(
-            location=[lat, lng],
-            icon = folium.Icon(color='red', tooltip=f"POI: {poi}", icon='info-sign')          
-                    ).add_to(mappa)
-        
-        radiuses = [(500, "green"), (1000, "blue"), (2000, "red")] #raggi in metri
-        for r in radiuses:
-            folium.Circle(
-                location=[lat, lng],
-                radius=r[0],
-                color=r[1],
-                fill=False
-            ).add_to(mappa)
-        
+        mappa = createMap(nearby_hotels, poi)
         st_folium(mappa, width=1000, height=550)
     
     with st.spinner("Individuo i migliori hotel..."):
@@ -120,5 +194,5 @@ if city != None and poi != None:
 
         Queste informazioni ti aiuteranno a fare una scelta più informata sugli hotel da esplorare!
         """)
-        st.dataframe(hotelVicini())
+        st.dataframe(hotelVicini_pandas(nearby_hotels))
 

@@ -14,6 +14,15 @@ def getSpark(appName):
 
 spark = getSpark("BigData_App")
 
+st.sidebar.title("🔍 Navigazione")
+st.sidebar.markdown("### Sezioni disponibili:")
+
+st.sidebar.markdown("- 🏠 **Home**")
+st.sidebar.markdown("- 📍 **Mappa Hotel**")
+st.sidebar.markdown("- 📊 **Trend & Analisi**")
+st.sidebar.markdown("- 🔍 **Anomaly Detection**")
+st.sidebar.markdown("- 📝 **Word Cloud**")
+
 def load_seasonal_sentiment():
     sentiment_analysis = SeasonSentimentAnalysis(spark.df_finale)
     df_preprocessed = sentiment_analysis.preprocess()

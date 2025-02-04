@@ -16,6 +16,15 @@ def getSpark(appName):
 
 spark = getSpark("BigData_App")
 
+st.sidebar.title("🔍 Navigazione")
+st.sidebar.markdown("### Sezioni disponibili:")
+
+st.sidebar.markdown("- 🏠 **Home**")
+st.sidebar.markdown("- 📍 **Mappa Hotel**")
+st.sidebar.markdown("- 📊 **Trend & Analisi**")
+st.sidebar.markdown("- 🔍 **Anomaly Detection**")
+st.sidebar.markdown("- 📝 **Word Cloud**")
+
 @st.cache_data
 def nationality_review_analysis_cached(n, min_reviews): # MA PERCHE CAZZO NON FUNZIONA NIENTE AAAAAAA
     return spark.queryManager.nationality_review_analysis(n=n, min_reviews=min_reviews).toPandas()
@@ -23,7 +32,7 @@ def nationality_review_analysis_cached(n, min_reviews): # MA PERCHE CAZZO NON FU
 def get_reviews_for_nationality(nationality):
     # Filtra i dati per la nazionalità selezionata
     if nationality:
-        return spark.df_finale.filter(col("Reviewer_Nationality") == nationality).select("Hotel_Name", "Review_Date", "Reviewer_Nationality", "Negative_Review", "Review_Total_Negative_Word_Counts", "Positive_Review", "Review_Total_Positive_Word_Counts", "Reviewer_Score", "Tags", ).toPandas()
+        return spark.df_finale.filter(col("Reviewer_Nationality") == nationality).select("Hotel_Name", "Review_Date", "Reviewer_Nationality", "Reviewer_Score","Negative_Review", "Review_Total_Negative_Word_Counts", "Positive_Review", "Review_Total_Positive_Word_Counts",  "Tags", ).toPandas()
     return pd.DataFrame()  # Restituisce un DataFrame vuoto se non è selezionata una nazionalità
 
 @st.cache_data
@@ -49,15 +58,15 @@ def get_coordinates(nationalities, attempt=1, max_attempts=5):
 
 # Parametri per la mappa
 st.title("🌍 Analisi Recensioni per Nazionalità")
-n = st.slider("Numero di nazionalità da mostrare nella mappa", 5, 50, 20)
-min_reviews = st.slider("Numero minimo di recensioni per includere una nazionalità", 1, 10, 2)
+n = 100
+min_reviews = st.slider("Numero minimo di recensioni per includere una nazionalità", 1, 50, 100)
 
 st.markdown("### Dati delle recensioni per nazionalità")
 nationality_reviews = nationality_review_analysis_cached(n, min_reviews)
 
 # Ottieni le coordinate per le nazionalità
 unique_nationalities = nationality_reviews["Reviewer_Nationality"].unique()
-if "coordinates" not in st.session_state:
+if "coordinates" not in st.session_state.to_dict():
         st.session_state.coordinates = get_coordinates(unique_nationalities)
 
 # Prepara il DataFrame per la mappa
@@ -66,13 +75,6 @@ map_data["coordinates"] = map_data["Reviewer_Nationality"].map(st.session_state.
 map_data = map_data.dropna(subset=["coordinates"])
 map_data["lat"] = map_data["coordinates"].apply(lambda x: x[0])
 map_data["lon"] = map_data["coordinates"].apply(lambda x: x[1])
-
-# Selettore per la nazionalità
-selected_nationality = st.selectbox(
-    "Seleziona una nazionalità:",
-    options=map_data["Reviewer_Nationality"].unique(),
-    index=0
-)
 
 # Mappa con i puntini
 st.subheader("🌍 Mappa delle Nazionalità")
@@ -85,6 +87,7 @@ map_layer = pdk.Layer(
     pickable=False,
 )
 
+
 r = pdk.Deck(
     layers=[map_layer],
     initial_view_state=pdk.ViewState(latitude=0, longitude=0, zoom=1),
@@ -92,6 +95,14 @@ r = pdk.Deck(
 )
 
 st.pydeck_chart(r)
+
+
+# Selettore per la nazionalità
+selected_nationality = st.selectbox(
+    "Seleziona una nazionalità:",
+    options=map_data["Reviewer_Nationality"].unique(),
+    index=0
+)
 
 # Analisi basata sulla selezione
 if selected_nationality:
