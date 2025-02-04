@@ -8,11 +8,16 @@ from pyspark.sql.functions import when, col, abs, lit
 
 
 class BertTrainer:
+
     def __init__(self, df: DataFrame, model_path="models/bert_model"):
         self.df = df
         self.model_path = model_path
         self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=1)
+        
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # usa gpu se c'è
+        self.model.to(self.device)
+
 
     def preprocess_data(self):
         """ Caricamento dataset Spark e conversione in Pandas + Pulizia testo """
@@ -26,7 +31,7 @@ class BertTrainer:
     
     def infer_review_score(self, review_text):
         """ Usa BERT per predire il punteggio di una recensione """
-        encoding = self.tokenizer(review_text, return_tensors="pt", padding=True, truncation=True, max_length=256)
+        encoding = {key: val.to(self.device) for key, val in encoding.items()} #spostato su gpu
         with torch.no_grad():
             output = self.model(**encoding)
             score = output.logits.squeeze().item()
@@ -116,7 +121,7 @@ class BertTrainer:
             num_train_epochs=3,
             per_device_train_batch_size=2,
             per_device_eval_batch_size=2,
-            fp16=False,
+            fp16=True,                          #imposta questo a false se addestri su cpu (non succederà mai)
             gradient_accumulation_steps=4,
             save_total_limit=1,
             warmup_steps=300,
@@ -132,10 +137,10 @@ class BertTrainer:
             train_dataset=train_dataset,
             eval_dataset=val_dataset
         )
-        print("Device:", torch.device("mps" if torch.backends.mps.is_available() else "cpu"))
+        print("Device:", self.device)
         trainer.train()
 
-        # 🔹 Salvataggio modello
+        # Salvataggio modello
         self.model.save_pretrained(self.model_path)
         self.tokenizer.save_pretrained(self.model_path)
 

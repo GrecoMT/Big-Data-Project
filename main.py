@@ -28,40 +28,14 @@ if __name__ == '__main__':
     #query_manager.tag_influence_analysis(n=20)
     #query_manager.outlier_analysis()
     #query_manager.review_length_analysis(n=50)
-    
-    #----------------------------------------------------------------ANALISI DELLA COERENZA----------------------------------------------------------------
-    #spark_builder.df_finale.groupBy("Reviewer_Score").count().orderBy("Reviewer_Score").show()
-    #export_path="/Users/vincenzopresta/Desktop/Big Data/progetto/coherence_analysis"
-    '''    
-    if not os.path.exists(export_path):
-        os.makedirs(export_path)
-        print(f"Cartella di esportazione creata: {export_path}")
-    query_manager.coherence_analysis(threshold=5.0, n=50, export_path=export_path)
-     
-    #DEBUG
-    spark = SparkSession.builder \
-    .appName("Visualizza CSV") \
-    .getOrCreate()
-    
-  #Percorso al file CSV
-    csv_path = "/Users/vincenzopresta/Desktop/Big Data/progetto/coherence_analysis/inconsistent_reviews_20250128_170404/part-00000-76493f5b-468f-4bba-bd26-b365549a4e4a-c000.csv"
-    # Carica il CSV come DataFrame
-    df = spark.read.csv(csv_path, header=True, inferSchema=True)
-    # Mostra le prime 20 righe del DataFrame
-    df.select("Positive_Review","Positive_Review_Clean","Negative_Review","Negative_Review_Clean","Reviewer_Score","adjusted_prediction","error").show(20, truncate=True)
-
-    df_original = spark_builder.df_finale.select("Positive_Review","Negative_Review","Reviewer_Score")\
-                                                .where((col("Positive_Review").contains("No Positive")) & (col("Negative_Review").contains("The bathrooms can")))\
-                                                .show(truncate=False)'''
-                                                
-    #----------------------------------------------------------------    
     #query_manager.recovery_time_analysis(n=100)
     #query_manager.reputation_analysis(n=100)
     #query_manager.seasonal_sentiment_analysis(n=100)
     #x = query_manager.nearby_hotels(45.48244094848633,9.175698280334473)
     #x.show(20, truncate=True)
     #query_manager.location_influence(10)
-
+    '''
     result = query_manager.get_nearby_hotels(45.464098, 9.191926)
     dff = result.toPandas()
-    print(dff.head())
+    print(dff.head())'''
+    query_manager.coherence_analysis_BERT()

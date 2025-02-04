@@ -22,6 +22,8 @@ from Bert import BertTrainer
 #dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
 dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
+dataset_path="C:/Users/Utente/Desktop/big data/dataset/Hotel_Reviews.csv"
+
 class SparkBuilder:
     def __init__(self, appname: str):
         
