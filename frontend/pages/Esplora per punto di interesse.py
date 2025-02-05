@@ -25,25 +25,6 @@ city_coords = {
 def getSpark(appName):
     return SparkBuilder("appName")
 
-
-def hotelVicini(_dataframe):
-    nearby_collected = _dataframe.collect()
-    result = None
-    for row in nearby_collected:
-        nome = row['hotel_name']
-        tmp = spark.queryManager.reputation_analysis_single(nome)
-        distance = row['distance']
-        tmp = tmp.withColumn("distance", lit(distance))
-        if result is None:
-            result = tmp
-        else:
-            result = result.unionByName(tmp)
-    result = result.select("hotel_name", "avg_historical_score", "avg_recent_score", "distance")
-    result = result.withColumn("distance", col("distance").cast("float"))
-    result = result.withColumnRenamed("avg_historical_score", "Media recensioni")
-    result = result.withColumnRenamed("avg_recent_score", "Media ultime recensioni")
-    return result.toPandas()
-
 @st.cache_data
 def hotelVicini_pandas(dataframe):
     result_list = []  # Lista per accumulare i risultati

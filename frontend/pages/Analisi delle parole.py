@@ -29,7 +29,7 @@ st.sidebar.markdown("- 🔍 **Anomaly Detection**")
 st.sidebar.markdown("- 📝 **Word Cloud**")
 
 st.markdown("## Imposta i parametri di analisi:")
-n = st.slider("Numero di parole da visualizzare", 5, 50, 20)
+n = st.selectbox("Numero di parole da visualizzare", [20, 50, 100])
 min_frequency = st.selectbox("Frequenza minima della parola", [100, 1000, 5000])
 
 with st.spinner("⚙️ Elaborazione dati..."):
@@ -47,35 +47,72 @@ def plot_wordcloud(word_scores, title):
 
 col1, col2 = st.columns(2)
 
-with col1:
-    with st.spinner("attendere..."):
-        st.subheader("📊 Top parole positive")
-        st.dataframe(positive_df)
-        st.subheader("📈 Distribuzione parole positive")
-        fig, ax = plt.subplots(figsize=(8, 4))
-        ax.barh(positive_df["word"][:n], positive_df["avg_score"][:n], color="green")
-        ax.set_xlabel("Punteggio medio")
-        ax.set_ylabel("Parola")
-        ax.set_title("Aggettivi con punteggio più alto")
-        st.pyplot(fig)
-    with st.spinner("generazione delle word cloud..."):
-        st.subheader("☁️ Word Cloud delle parole positive")
-        plot_wordcloud(positive_df, "Parole Positive")
+if(n<=50):
+    with col1:
+        with st.spinner("attendere..."):
+            st.subheader("📊 Top parole positive")
+            st.dataframe(positive_df)
+            st.subheader("📈 Distribuzione parole positive")
+            fig, ax = plt.subplots(figsize=(32, 16))
+            ax.barh(positive_df["word"][:n], positive_df["avg_score"][:n], color="green")
+            ax.set_xlabel("Punteggio medio", fontsize=20)
+            ax.set_ylabel("Parola", fontsize=20)
+            ax.set_title("Aggettivi con punteggio più alto",fontsize=40)
+            ax.tick_params(axis='y', labelsize=30)  # Aumenta la dimensione del testo sulle etichette Y
+            st.pyplot(fig)
+        with st.spinner("generazione delle word cloud..."):
+            st.subheader("☁️ Word Cloud delle parole positive")
+            plot_wordcloud(positive_df, "Parole Positive")
 
-with col2:
-    with st.spinner("attendere..."):
-        st.subheader("📊 Top parole negative")
-        st.dataframe(negative_df)
-        st.subheader("📈 Distribuzione parole negative")
-        fig, ax = plt.subplots(figsize=(8, 4))
-        ax.barh(negative_df["word"][:n], negative_df["avg_score"][:n], color="red")
-        ax.set_xlabel("Punteggio medio")
-        ax.set_ylabel("Parola")
-        ax.set_title("Aggettivi con punteggio più basso")
-        st.pyplot(fig)
-    with st.spinner("generazione delle word cloud..."):
-        st.subheader("☁️ Word Cloud delle parole negative")
-        plot_wordcloud(negative_df, "Parole Negative")
+    with col2:
+        with st.spinner("attendere..."):
+            st.subheader("📊 Top parole negative")
+            st.dataframe(negative_df)
+            st.subheader("📈 Distribuzione parole negative")
+            fig, ax = plt.subplots(figsize=(32, 16))
+            ax.barh(negative_df["word"][:n], negative_df["avg_score"][:n], color="red")
+            ax.set_xlabel("Punteggio medio", fontsize=20)
+            ax.set_ylabel("Parola", fontsize=20)
+            ax.set_title("Aggettivi con punteggio più basso", fontsize=40)
+            ax.tick_params(axis='y', labelsize=30)  # Aumenta la dimensione del testo sulle etichette Y
+            st.pyplot(fig)
+        with st.spinner("generazione delle word cloud..."):
+            st.subheader("☁️ Word Cloud delle parole negative")
+            plot_wordcloud(negative_df, "Parole Negative")
+        
+else:
+    
+    with col1:
+        with st.spinner("attendere..."):
+            st.subheader("📊 Top parole positive")
+            st.dataframe(positive_df)
+            st.subheader("📈 Distribuzione parole positive")
+            fig, ax = plt.subplots(figsize=(32, 16))
+            ax.barh(positive_df["word"][:n], positive_df["avg_score"][:n], color="green")
+            ax.set_xlabel("Punteggio medio", fontsize=20)
+            ax.set_ylabel("Parola", fontsize=20)
+            ax.set_title("Aggettivi con punteggio più alto",fontsize=40)
+            ax.tick_params(axis='y', labelsize=10)  # Aumenta la dimensione del testo sulle etichette Y
+            st.pyplot(fig)
+        with st.spinner("generazione delle word cloud..."):
+            st.subheader("☁️ Word Cloud delle parole positive")
+            plot_wordcloud(positive_df, "Parole Positive")
+
+    with col2:
+        with st.spinner("attendere..."):
+            st.subheader("📊 Top parole negative")
+            st.dataframe(negative_df)
+            st.subheader("📈 Distribuzione parole negative")
+            fig, ax = plt.subplots(figsize=(32, 16))
+            ax.barh(negative_df["word"][:n], negative_df["avg_score"][:n], color="red")
+            ax.set_xlabel("Punteggio medio", fontsize=20)
+            ax.set_ylabel("Parola", fontsize=20)
+            ax.set_title("Aggettivi con punteggio più basso", fontsize=40)
+            ax.tick_params(axis='y', labelsize=10)  # Aumenta la dimensione del testo sulle etichette Y
+            st.pyplot(fig)
+        with st.spinner("generazione delle word cloud..."):
+            st.subheader("☁️ Word Cloud delle parole negative")
+            plot_wordcloud(negative_df, "Parole Negative")
 
 # Opzione di download
 st.download_button(

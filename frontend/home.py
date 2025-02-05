@@ -36,9 +36,9 @@ def clear_terminal():
 def show_landing_page():
     
     st.markdown(
-        "<h1 style='text-align: center; color: #4A90E2;'>🔍 Analisi delle Recensioni degli Hotel</h1>", 
-        unsafe_allow_html=True
-    )
+    "<h1 style='text-align: center; color: #000000;'>🔍 Analisi delle Recensioni degli Hotel</h1>", 
+    unsafe_allow_html=True
+    )   
     
     col1, col2, col3 = st.columns([1,2,1])
     

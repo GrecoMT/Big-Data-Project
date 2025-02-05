@@ -59,7 +59,7 @@ def get_coordinates(nationalities, attempt=1, max_attempts=5):
 # Parametri per la mappa
 st.title("🌍 Analisi Recensioni per Nazionalità")
 n = 100
-min_reviews = st.slider("Numero minimo di recensioni per includere una nazionalità", 1, 50, 100)
+min_reviews = st.slider("Seleziona il numero minimo di recensioni per includere una nazionalità", 1, 50, 100)
 
 st.markdown("### Dati delle recensioni per nazionalità")
 nationality_reviews = nationality_review_analysis_cached(n, min_reviews)
@@ -96,6 +96,7 @@ r = pdk.Deck(
 
 st.pydeck_chart(r)
 
+st.write("---")
 
 # Selettore per la nazionalità
 selected_nationality = st.selectbox(

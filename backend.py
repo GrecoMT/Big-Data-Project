@@ -3,7 +3,7 @@ from pyspark import SparkConf
 
 from pyspark.sql.types import IntegerType, FloatType, StringType, BooleanType
 
-from pyspark.sql.functions import regexp_replace, split, expr, col, to_date, regexp_extract, udf, count, array_contains, avg, first, explode, abs, desc, asc, stddev, coalesce, to_date, when, date_format, lower, lit
+from pyspark.sql.functions import regexp_replace, split, expr, col, to_date, regexp_extract, udf, count, array_contains, avg, first, explode, abs, desc, asc, stddev, coalesce, to_date, when, date_format, lower, lit, sum, max, min
 import pyspark.sql.functions as F
 
 
@@ -585,5 +585,20 @@ class QueryManager:
         predictions = bert_model.analyze_consistency(threshold, n, export_path)
 
         return predictions
-    
+#----------------------------------------------------------------
+    def hotelStatistics(self):
+            df = self.spark.df_finale
+
+            res = df.groupBy("Hotel_Name").agg(
+                count("*").alias("Total_Reviews"),
+                sum(when(col("Reviewer_Score") >= 6, 1).otherwise(0)).alias("Total_Positive_Reviews"),
+                sum(when(col("Reviewer_Score") <  6, 1).otherwise(0)).alias("Total_Negative_Reviews"),
+                max("Reviewer_Score").alias("Max_Reviewer_Score"),
+                min("Reviewer_Score").alias("Min_Reviewer_Score"),
+                avg("Reviewer_Score").alias("Avg_Reviewer_Score"),
+                first("lat").alias("Latitude"),
+                first("lng").alias("Longitude"),
+                avg("Additional_Number_of_Scoring").alias("Avg_Additional_Number_of_Scoring")
+            )
+            return res
     
