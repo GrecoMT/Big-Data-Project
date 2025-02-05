@@ -19,8 +19,8 @@ import os
 from Bert import BertTrainer
 
 
-dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 #dataset_path="C:/Users/Utente/Desktop/big data/dataset/Hotel_Reviews.csv"
 
@@ -521,7 +521,23 @@ class QueryManager:
 
         return utils.graficoTrend(trend_df, True)
 
-    
+    #-------------- HOTEL STATISTICS ------------------#
+    def hotelStatistics(self):
+            df = self.spark.df_finale
+
+            res = df.groupBy("Hotel_Name").agg(
+                count("*").alias("Total_Reviews"),
+                sum(when(col("Reviewer_Score") >= 6, 1).otherwise(0)).alias("Total_Positive_Reviews"),
+                sum(when(col("Reviewer_Score") <  6, 1).otherwise(0)).alias("Total_Negative_Reviews"),
+                max("Reviewer_Score").alias("Max_Reviewer_Score"),
+                min("Reviewer_Score").alias("Min_Reviewer_Score"),
+                avg("Reviewer_Score").alias("Avg_Reviewer_Score"),
+                first("lat").alias("Latitude"),
+                first("lng").alias("Longitude"),
+                avg("Additional_Number_of_Scoring").alias("Avg_Additional_Number_of_Scoring")
+            )
+            return res
+
 #------------------QUERY SUPPORTO 1 --------------------------------
     #in base al tag scelto restituire hotel che hanno quei tag con recensione più alta / bassa.
 
@@ -585,20 +601,4 @@ class QueryManager:
         predictions = bert_model.analyze_consistency(threshold, n, export_path)
 
         return predictions
-#----------------------------------------------------------------
-    def hotelStatistics(self):
-            df = self.spark.df_finale
-
-            res = df.groupBy("Hotel_Name").agg(
-                count("*").alias("Total_Reviews"),
-                sum(when(col("Reviewer_Score") >= 6, 1).otherwise(0)).alias("Total_Positive_Reviews"),
-                sum(when(col("Reviewer_Score") <  6, 1).otherwise(0)).alias("Total_Negative_Reviews"),
-                max("Reviewer_Score").alias("Max_Reviewer_Score"),
-                min("Reviewer_Score").alias("Min_Reviewer_Score"),
-                avg("Reviewer_Score").alias("Avg_Reviewer_Score"),
-                first("lat").alias("Latitude"),
-                first("lng").alias("Longitude"),
-                avg("Additional_Number_of_Scoring").alias("Avg_Additional_Number_of_Scoring")
-            )
-            return res
     

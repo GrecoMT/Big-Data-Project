@@ -178,7 +178,16 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
     
     with st.spinner(f"Confronto ultime recensioni con la media per {hotel_selezionato}..."):
         st.write(f"**Confronto ultime recensioni con la media per {hotel_selezionato}:**")
-        st.table(reputation(hotel_selezionato))
+        df_reputation = reputation(hotel_selezionato)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric(label="Average Score", value=round(df_reputation.loc[0, "avg_historical_score"], 5))
+            st.metric(label="Average Score recente", value=round(df_reputation.loc[0, "avg_recent_score"], 5))
+        with col2:
+            diff = round(df_reputation.loc[0, "score_difference"], 5)
+            trend = "📈 L'hotel sta migliorando" if diff > 0 else "📉 L'hotel sta peggiorando"
+            st.metric(label="Differenza", value=diff)
+            st.write(trend)
 
     with st.spinner(f"Confronto con hotel vicini (nel raggio di 1km) a {hotel_selezionato}..."):
         hotel_lat = map_data.get("last_object_clicked").get("lat")
