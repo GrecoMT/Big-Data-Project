@@ -10,7 +10,6 @@ import utils
 
 from pyspark.sql.window import Window
 
-from coherence_review_model_vader import CoherenceReviewModel
 from season_sentiment_analysis import SeasonSentimentAnalysis
 
 from RoBERTa_Sentiment import RoBERTa_Sentiment
@@ -316,22 +315,8 @@ class QueryManager:
         
     #--------------------------QUERY 5------------------------------------------------
     #Analisi della coerenza tra recensioni e punteggi:predire il punteggio basato sul contenuto della recensione e confrontarlo con il punteggio effettivamente dato TODO
-    def coherence_analysis(self, threshold=2.0,n=10, export_path=None):
-        """
-        Richiama l'analisi del modello di sentiment e coerenza.
-        """
-        sentiment_model = CoherenceReviewModel(self.spark.df_finale)
 
-        # Preprocessa il testo
-        sentiment_model.preprocess_reviews()
-
-        # Addestra il modello
-        sentiment_model.train_sentiment_model()
-
-        # Esegui l'analisi di coerenza
-        predictions = sentiment_model.analyze_consistency(threshold,n, export_path) # treshold serve a defnire un limite massimo accettabile per l'errore assoluto tra il punteggio predetto dal modello e il punteggio reale
-        
-        return predictions
+    #RIP
 
 #--------------------------QUERY 6------------------------------------------------
     #Analisi della reputazione: differenza tra il punteggio medio storico di un hotel e il punteggio medio delle recensioni recenti
