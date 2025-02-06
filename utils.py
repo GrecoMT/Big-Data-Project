@@ -1,10 +1,9 @@
 import requests
 from urllib.parse import quote
-from pyspark.sql.functions import explode, col,count, desc, lower
+from pyspark.sql.functions import explode, col,count, desc
 import plotly.express as px
 
 import math
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -116,23 +115,6 @@ def graficoTrend(dataframe, single : bool):
     #plt.show()
     #Return necessario per inserire il grafico nel frontend
     return plt 
-
-def get_most_used_tags(df):
-    """
-    DataFrame df con una colonna "tags" di tipo ARRAY<STRING>.
-    Restituisce una lista ordinata dei tag più usati con il loro conteggio.
-
-    top_n: Numero massimo di tag da restituire (default: 10).
-    """
-    # Esplodere l'array "tags" in valori singoli
-    tags_df = df.select(explode(col("tags")).alias("tag"))
-
-    # Contare la frequenza di ogni tag e ordinarli in ordine decrescente
-    tags_count_df = tags_df.groupBy("tag").agg(count("*").alias("count")).orderBy(desc("count"))
-    
-    tags = tags_count_df.select("tag")
-    
-    return tags
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371

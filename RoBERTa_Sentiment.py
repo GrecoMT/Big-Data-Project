@@ -123,14 +123,11 @@ class RoBERTa_Sentiment:
         sentiment_map = {"negative": -1, "neutral": 0, "positive": 1}
 
         for row in hotel_reviews:
-            print(f"analizzando: {row}")
             positive_text = row["Positive_Review"].strip()
             negative_text = row["Negative_Review"].strip()
 
             # Calcola il sentiment della recensione utilizzando il metodo per la singola recensione
             review_sentiment = self.analyze_review_sentiment(positive_text, negative_text)
-            
-            print(f"sentiment = {review_sentiment}")
 
             # Mappa il sentiment in valori numerici e accumula
             sentiment_scores.append(sentiment_map[review_sentiment])
@@ -138,8 +135,7 @@ class RoBERTa_Sentiment:
         avg_score = sum(sentiment_scores) / len(sentiment_scores)
 
         # Determina il sentiment complessivo basato sulla media
-        print(avg_score)
-        
+      
         if avg_score > 0.2 and avg_score < 0.4:
             return "Piuttosto Positivo"
         elif avg_score >= 0.4:

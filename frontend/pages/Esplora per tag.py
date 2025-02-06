@@ -2,19 +2,21 @@ from backend import SparkBuilder
 import streamlit as st
 import utils
 
-st.set_page_config(page_title="Hotel Map", layout="wide")
+from pyspark.sql.functions import desc
+
+st.set_page_config(page_title="Esplora per tag", layout="wide")
 
 @st.cache_resource
 def getSpark(appName):
-    return SparkBuilder("appName")
+    return SparkBuilder(appName)
 
 spark = getSpark("BigData_App")
 
-tags = utils.get_most_used_tags(spark.df_finale)
+tags = spark.queryManager.get_most_used_tags()
 
 st.title("Esplora per tag")
 
-st.markdown("## Seleziona una città:")
+
 
 st.sidebar.title("🔍 Navigazione")
 st.sidebar.markdown("### Sezioni disponibili:")
@@ -35,6 +37,29 @@ city_coords = {
     "Parigi": [48.8566, 2.3522],
     "Amsterdam" : [52.3709, 4.8902]
 }
+
+@st.cache_data
+def tag_influence_asc():
+    df = spark.queryManager.tag_influence_analysis().limit(10)
+    return df.toPandas()
+
+@st.cache_data
+def tag_influence_disc():
+    df = spark.queryManager.tag_influence_analysis().orderBy(desc("avg_score")).limit(10)
+    return df.toPandas()
+
+st.subheader("Influenza tag sullo scoring")
+
+col1, col2 = st.columns(2)
+with col1:
+    st.write("Tag con score migliore:")
+    st.table(tag_influence_disc())
+
+with col2:
+    st.write("Tag con score peggiore:")
+    st.table(tag_influence_asc())
+
+st.markdown("## Seleziona una città:")
 
 if "selected_button" not in st.session_state:
     st.session_state.selected_button = None

@@ -13,7 +13,7 @@ st.set_page_config(page_title="Hotel Map", layout="wide")
 
 @st.cache_resource
 def getSpark(appName):
-    return SparkBuilder("appName")
+    return SparkBuilder(appName)
 
 spark = getSpark("BigData_App")
 
@@ -78,6 +78,12 @@ def analyze_hotel_sentiment(hotel):
     sentiment = spark.queryManager.analyze_hotel_sentiment(hotel)
     return sentiment
 
+#Sum
+@st.cache_data
+def getSum(hotel):
+    sum = spark.queryManager.sumReviews(hotel)
+    return sum
+
 
 if "stats" not in st.session_state:
     st.session_state.stats = spark.queryManager.hotelStatistics()
@@ -138,7 +144,7 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
         '''
     )
     
-    print(hotel_selezionato)
+    
     
     sentiment_result = analyze_hotel_sentiment(hotel_selezionato)
     st.metric(label="Sentiment Complessivo", label_visibility="visible", value=sentiment_result, delta=sentiment_emoji.get(sentiment_result, ""))
@@ -180,7 +186,11 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
             st.metric(label="Average Score", value=round(stats.loc[0, "Avg_Reviewer_Score"], 2))
             st.metric(label="Minimum reviewer score", value=stats.loc[0, "Min_Reviewer_Score"])
             st.metric(label="Maximum Reviewer score", value=stats.loc[0, "Max_Reviewer_Score"])
-
+    
+    with st.spinner(f"Riassumo le recensioni... per {hotel_selezionato}"):
+        st.markdown(
+            getSum(hotel_selezionato)
+        )
 
     with st.spinner(f"Generazione del trend mensile per {hotel_selezionato}..."):
         st.write(f"**Trend Mensile per {hotel_selezionato}:**")
