@@ -9,9 +9,9 @@ st.set_page_config(page_title="Analisi delle Parole", layout="wide")
 
 @st.cache_data #dalla doc: serve per calcolare solo una volta il risultato di questa funzione
 def wsa(n,min_frequency):
-    positive_word_scores,negative_word_scores= spark.queryManager.words_score_analysis(n=n, min_frequency=min_frequency)
-    positive_df = positive_word_scores.toPandas()
-    negative_df = negative_word_scores.toPandas()
+    positive_word_scores,negative_word_scores= spark.queryManager.words_score_analysis(min_frequency=min_frequency)
+    positive_df = positive_word_scores.limit(n).toPandas()
+    negative_df = negative_word_scores.limit(n).toPandas()
     return positive_df, negative_df
 
 @st.cache_resource

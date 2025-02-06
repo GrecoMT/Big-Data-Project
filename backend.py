@@ -7,8 +7,8 @@ from season_sentiment_analysis import SeasonSentimentAnalysis
 from RoBERTa_Sentiment import RoBERTa_Sentiment
 from DeepSeekSum import SummaryLLM
 
-dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 class SparkBuilder:
     def __init__(self, appname: str):            
@@ -126,28 +126,17 @@ class QueryManager:
         self.summaryLLM = SummaryLLM(self.spark.df_finale)
 
     #------------------------------QUERY 1----------------------------------------------
-    def words_score_analysis(self, n=20, min_frequency=1000):
-        """
-        Analizza quali parole aggettivi nelle recensioni positive o negative sono indicatrici di punteggi alti o bassi,
-        considerando solo parole con una certa frequenza minima.
-
-        Args:
-            n (int): Numero di parole da mostrare nelle classifiche.
-            min_frequency (int): Frequenza minima di occorrenza delle parole per essere considerate.
-        """
-        is_adjective_udf = udf(utils.is_adjective_or_adverb, BooleanType())
+    def words_score_analysis(self, min_frequency=1000):
+        is_adjective_or_adverb_udf = udf(utils.is_adjective_or_adverb, BooleanType())
         df = self.spark.df_finale
-        
-        # Tokenizza e filtra le parole aggettivi nelle recensioni positive
+    
+        #Aggettivi e avverbi nelle recensioni positive
         positive_words = df.select(
             col("Reviewer_Score"),
             explode(split(col("Positive_Review"), r"\s+")).alias("word")
         ).filter(col("word") != "")  # Rimuove parole vuote
-        
         positive_words = positive_words.withColumn("word", lower(col("word")))
-
-        positive_words_filtered = positive_words.filter(is_adjective_udf(col("word")))
-
+        positive_words_filtered = positive_words.filter(is_adjective_or_adverb_udf(col("word")))
         positive_word_scores = positive_words_filtered.groupBy("word") \
             .agg(
                 avg("Reviewer_Score").alias("avg_score"),
@@ -155,20 +144,13 @@ class QueryManager:
             ) \
             .filter(col("word_count") >= min_frequency) \
             .orderBy(desc("avg_score"))
-
-        print(f"\nTop {n} aggettivi positivi con il punteggio più alto (min. {min_frequency} occorrenze):")
-        positive_word_scores.select("word", "avg_score", "word_count").show(n, truncate=False)
-
-        # Tokenizza e filtra le parole aggettivi nelle recensioni negative
+        #Aggettivi e avverbi nelle recensioni negative
         negative_words = df.select(
             col("Reviewer_Score"),
             explode(split(col("Negative_Review"), r"\s+")).alias("word")
         ).filter(col("word") != "")  # Rimuove parole vuote
-        
         negative_words = negative_words.withColumn("word", lower(col("word")))
-
-        negative_words_filtered = negative_words.filter(is_adjective_udf(col("word")))
-
+        negative_words_filtered = negative_words.filter(is_adjective_or_adverb_udf(col("word")))
         negative_word_scores = negative_words_filtered.groupBy("word") \
             .agg(
                 avg("Reviewer_Score").alias("avg_score"),
@@ -176,11 +158,9 @@ class QueryManager:
             ) \
             .filter(col("word_count") >= min_frequency) \
             .orderBy("avg_score")  # Ordina dal punteggio più basso
-
-        print(f"\nTop {n} aggettivi negativi con il punteggio più basso (min. {min_frequency} occorrenze):")
-        negative_word_scores.select("word", "avg_score", "word_count").show(n, truncate=False)
-
         return positive_word_scores, negative_word_scores
+    
+    
         
     # ------------------------------QUERY 2----------------------------------------------
     #Correlazione tra nazionalità e recensioni positive e negative.
