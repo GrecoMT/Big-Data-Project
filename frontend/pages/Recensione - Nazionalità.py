@@ -27,7 +27,7 @@ st.sidebar.markdown("- 🇮🇹 **Recensione-Nazionalità**")
 st.sidebar.markdown("- 🏖️ **Sentiment Stagionale**")
 
 @st.cache_data
-def nationality_review_analysis_cached(n, min_reviews): # MA PERCHE CAZZO NON FUNZIONA NIENTE AAAAAAA
+def nationality_review_analysis_cached(n, min_reviews):
     return spark.queryManager.nationality_review_analysis(n=n, min_reviews=min_reviews).toPandas()
 
 def get_reviews_for_nationality(nationality):

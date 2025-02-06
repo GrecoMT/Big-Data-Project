@@ -125,7 +125,7 @@ class QueryManager:
         self.sentiment_analyzer = RoBERTa_Sentiment()
         self.summaryLLM = SummaryLLM(self.spark.df_finale)
 
-    #------------------------------QUERY 1----------------------------------------------
+    #Query 1
     def words_score_analysis(self, min_frequency=1000):
         is_adjective_or_adverb_udf = udf(utils.is_adjective_or_adverb, BooleanType())
         df = self.spark.df_finale
@@ -159,43 +159,11 @@ class QueryManager:
             .filter(col("word_count") >= min_frequency) \
             .orderBy("avg_score")  # Ordina dal punteggio più basso
         return positive_word_scores, negative_word_scores
-    
-    
-        
-    # ------------------------------QUERY 2----------------------------------------------
-    #Correlazione tra nazionalità e recensioni positive e negative.
-    def nationality_review_analysis(self, n=20, min_reviews=2):
-        """
-        Analizza le nazionalità in base ai punteggi medi e alle recensioni positive/negative,
-        considerando solo le nazionalità con un numero minimo di recensioni.
+       
+    #Query 2
+    def nationality_review_analysis(self, min_reviews=2):
 
-        Args:
-            n (int): Numero di nazionalità da mostrare nelle classifiche.
-            min_reviews (int): Numero minimo di recensioni per includere una nazionalità.
-        """
         df = self.spark.df_finale
-
-        # Nazionalità più "buone" (punteggi medi più alti)
-        good_nationalities = df.groupBy("Reviewer_Nationality") \
-            .agg(
-                avg("Reviewer_Score").alias("avg_score"),
-                count("*").alias("review_count")
-            ).filter(col("review_count") >= min_reviews) \
-            .orderBy(desc("avg_score"))
-
-        print(f"\nTop {n} nazionalità con il punteggio medio più alto (min. {min_reviews} recensioni):")
-        good_nationalities.show(n, truncate=False)
-
-        # Nazionalità più "cattive" (punteggi medi più bassi)
-        bad_nationalities = df.groupBy("Reviewer_Nationality") \
-            .agg(
-                avg("Reviewer_Score").alias("avg_score"),
-                count("*").alias("review_count")
-            ).filter(col("review_count") >= min_reviews) \
-            .orderBy("avg_score")
-
-        print(f"\nTop {n} nazionalità con il punteggio medio più basso (min. {min_reviews} recensioni):")
-        bad_nationalities.show(n, truncate=False)
 
         # Correlazione tra nazionalità e lunghezza delle recensioni positive/negative
         nationality_reviews = df.groupBy("Reviewer_Nationality") \
@@ -206,15 +174,9 @@ class QueryManager:
             ).filter(col("review_count") >= min_reviews) \
             .orderBy(desc("avg_positive_words"))
 
-        print(f"\nCorrelazione tra nazionalità e lunghezza delle recensioni positive/negative (min. {min_reviews} recensioni):")
-        nationality_reviews.select(
-            "Reviewer_Nationality", "avg_positive_words", "avg_negative_words", "review_count"
-        ).show(n, truncate=False)
-
         return nationality_reviews
         
-    # ------------------------------QUERY 3----------------------------------------------
-    #Influenza delle tag sullo scoring
+    #Query 3
     def tag_influence_analysis(self, min_count=1000):
         df = self.spark.df_finale
 
@@ -223,8 +185,7 @@ class QueryManager:
             col("Reviewer_Score"),
             explode(col("Tags")).alias("tag")
         )
-
-        # Calcola la media del punteggio e il conteggio per ciascuna tag
+        # Calcola la media del punteggio e il conteggio per ciascun tag
         tag_scores_desc = exploded_tags.groupBy("tag") \
             .agg(
                 avg("Reviewer_Score").alias("avg_score"),
@@ -232,19 +193,11 @@ class QueryManager:
             ) \
             .filter(col("tag_count") >= min_count).orderBy(desc("avg_score"))
 
-        tag_scores_desc.show(10)
-
-        tag_scores_asc = tag_scores_desc.orderBy(asc("avg_score"))
-        return tag_scores_asc
+        return tag_scores_desc
     
-    # ------------------------------QUERY 4----------------------------------------------
-    #Analisi della lunghezza: verificare se recensioni più lunghe tendono ad essere più positive o negative.
+    #Query 4
     def review_length_analysis(self):
-        """
-        Analizza la lunghezza delle recensioni e verifica se recensioni più lunghe 
-        tendono ad essere più positive o negative.
-        """
-        df = self.spark.df_finale.filter((col("Review_Total_Positive_Word_Counts") > 0) | (col("Review_Total_Negative_Word_Counts") > 0)) #aggiunto per ottimizzare, filtro le recensioni vuote
+        df = self.spark.df_finale.filter((col("Review_Total_Positive_Word_Counts") > 0) | (col("Review_Total_Negative_Word_Counts") > 0))
         
         # Calcolo della lunghezza media delle recensioni positive e negative per punteggio
         review_length = df.groupBy("Reviewer_Score") \
@@ -254,13 +207,9 @@ class QueryManager:
             ).orderBy("Reviewer_Score")
         
         return review_length
-
-#--------------------------QUERY 5------------------------------------------------
-    #Analisi della reputazione: differenza tra il punteggio medio storico di un hotel e il punteggio medio delle recensioni recenti
-    def reputation_analysis(self, recent_reviews=30, n=20, score_difference = -1):
-        """
-        Analizza la differenza tra il punteggio medio storico di un hotel e il punteggio medio delle recensioni recenti.
-        """
+    
+    #Query 5
+    def reputation_analysis(self, recent_reviews=30, score_difference = -1):
         df = self.spark.df_finale
 
         # Calcolo del punteggio medio storico per ogni hotel
@@ -297,11 +246,8 @@ class QueryManager:
         avg_difference = df_aggregated.agg(avg("score_difference").alias("avg_difference")).collect()[0][0]
         
         return df_aggregated
-    
+    #Query 5 singola
     def reputation_analysis_single(self, hotel_name, recent_reviews=30):
-        """
-        Analizza la differenza tra il punteggio medio storico di un hotel e il punteggio medio delle recensioni recenti.
-        """
         df = self.spark.df_finale.filter(col("Hotel_Name") == hotel_name)
 
         if df.count() == 0:
@@ -330,16 +276,10 @@ class QueryManager:
         df_aggregated = df_aggregated.withColumn(
             "score_difference", col("avg_recent_score") - col("avg_historical_score")
         )
-
         return df_aggregated
                 
-#--------------------------- QUERY 6------------------------------------------------
-    #Analisi del sentiment in base alla stagione
+    #Query 6
     def seasonal_sentiment_analysis(self):
-        """
-        Analizza come il sentiment medio delle recensioni varia in base alla stagione dell'anno.
-        Utilizza VADER -> rule based e lessico
-        """
         sentiment_analysis = SeasonSentimentAnalysis(self.spark.df_finale)
 
         # Preprocessa i dati per calcolare il sentiment e la stagione
@@ -354,9 +294,7 @@ class QueryManager:
 
         return seasonal_sentiment
         
-        
-    #-----------------------QUERY 7------------------------------------------------
-    #Identificare recensioni sospette tipo recensioni estremamente positive o negative che differiscono significativamente dal trend generale dell’hotel
+    #Query 7
     def anomaly_detection(self, hotelName):
         
         df = self.spark.df_finale
@@ -381,7 +319,7 @@ class QueryManager:
         
         return df_fin
     
-#----------------- QUERY 8 TREND MESE-ANNO  ------------------#
+    #Query 8
     def trend_mensile(self, hotelName):
         # Filtrare i dati per l'hotel specificato
         df_trend = self.spark.df_finale.filter(col("Hotel_Name") == hotelName)
@@ -396,7 +334,7 @@ class QueryManager:
 
         return utils.graficoTrend(trend_df, True)
 
-    #-------------- QUERY 9 STATISTICHE------------------#
+    #Query 9
     def hotelStatistics(self):
             df = self.spark.df_finale
 
@@ -413,9 +351,21 @@ class QueryManager:
             )
             return res
 
-#------------------QUERY SUPPORTO 1 --------------------------------
-    #in base al tag scelto restituire hotel che hanno quei tag con recensione più alta / bassa.
+    #Roberta's Functions
+    def analyze_single_review(self, positive_text, negative_text):
+            """Analizza il sentiment di una singola recensione."""
+            return self.sentiment_analyzer.analyze_review_sentiment(positive_text, negative_text) #questa funzione si può togliere se non integriamo l'analisi della singola recensione
 
+    def analyze_hotel_sentiment(self, hotel_name):
+        """Calcola il sentiment medio delle recensioni di un hotel."""
+        print(f"Analizzando il sentiment di {hotel_name}")
+        return self.sentiment_analyzer.analyze_hotel_sentiment(hotel_name, self.spark.df_finale) 
+
+    #DeepSeek
+    def sumReviews(self, hotel_name):
+        return self.summaryLLM.getSummary(hotel_name)
+
+    #Query supporto 1
     def get_hotels_by_tag(self, city, tag):
         """
         city: Nome della città su cui filtrare gli hotel
@@ -430,8 +380,7 @@ class QueryManager:
         
         return df_nuovo
     
-    #------------QUERY SUPPORTO 2 : HOTEL VICINI----------------------------------------------------------------
-    # Funzione per filtrare gli hotel
+    #Query supporto 2
     def get_nearby_hotels(self, user_lat, user_lng, max_distance):
         # Registra la funzione come UDF
         haversine_udf = udf(lambda lat, lng, user_lat, user_lng: utils.haversine(lat, lng, user_lat, user_lng))
@@ -440,7 +389,7 @@ class QueryManager:
             "distance", haversine_udf(col("lat"), col("lng"), lit(user_lat), lit(user_lng))
         ).filter(col("distance") <= max_distance)
     
-    #-----------QUERY SUPPORTO 3--------
+    #Query supporto 3
     def trend_mensile_compare(self, dataframe):
         
         #Creazione colonna "YearMonth" che contiene l'anno e il mese
@@ -453,7 +402,7 @@ class QueryManager:
 
         return utils.graficoTrend(trend_df, False)  
 
-    #-----------QUERY SUPPORT 4------
+    #Query supporto 4
     def get_most_used_tags(self):
 
         # Esplodere l'array "tags" in valori singoli
@@ -465,17 +414,3 @@ class QueryManager:
         tags = tags_count_df.select("tag")
         
         return tags
-    
-#----------------------------------------------------------------ROBERTA
-    def analyze_single_review(self, positive_text, negative_text):
-            """Analizza il sentiment di una singola recensione."""
-            return self.sentiment_analyzer.analyze_review_sentiment(positive_text, negative_text) #questa funzione si può togliere se non integriamo l'analisi della singola recensione
-
-    def analyze_hotel_sentiment(self, hotel_name):
-        """Calcola il sentiment medio delle recensioni di un hotel."""
-        print(f"Analizzando il sentiment di {hotel_name}")
-        return self.sentiment_analyzer.analyze_hotel_sentiment(hotel_name, self.spark.df_finale) 
-
-#----------------------------------------------------------------DeepSeekSum
-    def sumReviews(self, hotel_name):
-        return self.summaryLLM.getSummary(hotel_name)

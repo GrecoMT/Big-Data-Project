@@ -2,7 +2,7 @@ from backend import SparkBuilder
 import streamlit as st
 import utils
 
-from pyspark.sql.functions import desc
+from pyspark.sql.functions import asc
 
 st.set_page_config(page_title="Esplora per tag", layout="wide")
 
@@ -15,8 +15,6 @@ spark = getSpark("BigData_App")
 tags = spark.queryManager.get_most_used_tags()
 
 st.title("Esplora per tag")
-
-
 
 st.sidebar.title("🔍 Navigazione")
 st.sidebar.markdown("### Sezioni disponibili:")
@@ -40,12 +38,12 @@ city_coords = {
 
 @st.cache_data
 def tag_influence_asc():
-    df = spark.queryManager.tag_influence_analysis().limit(10)
+    df = spark.queryManager.tag_influence_analysis().orderBy(asc("avg_score")).limit(10)
     return df.toPandas()
 
 @st.cache_data
-def tag_influence_disc():
-    df = spark.queryManager.tag_influence_analysis().orderBy(desc("avg_score")).limit(10)
+def tag_influence_desc():
+    df = spark.queryManager.tag_influence_analysis().limit(10)
     return df.toPandas()
 
 st.subheader("Influenza tag sullo scoring")
@@ -53,7 +51,7 @@ st.subheader("Influenza tag sullo scoring")
 col1, col2 = st.columns(2)
 with col1:
     st.write("Tag con score migliore:")
-    st.table(tag_influence_disc())
+    st.table(tag_influence_desc())
 
 with col2:
     st.write("Tag con score peggiore:")
