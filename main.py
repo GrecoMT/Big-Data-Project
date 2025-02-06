@@ -38,4 +38,14 @@ if __name__ == '__main__':
     result = query_manager.get_nearby_hotels(45.464098, 9.191926)
     dff = result.toPandas()
     print(dff.head())'''
-    query_manager.coherence_analysis_BERT()
+
+    positive_text = "the interior design and service" 
+    negative_text ="my check in was delayed by 1 5 hrs v v poor also totally crazy at this price of stay they charge you for wi fi"
+
+    sentiment_single = query_manager.analyze_single_review(positive_text, negative_text)
+    print(f"Sentiment della recensione: {sentiment_single}")
+
+    # Testa il sentiment su un hotel
+    hotel_name = "Mandarin Oriental Milan"
+    sentiment_hotel = query_manager.analyze_hotel_sentiment(hotel_name)
+    print(f"Sentiment medio dell'hotel {hotel_name}: {sentiment_hotel}")

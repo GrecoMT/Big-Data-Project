@@ -6,7 +6,6 @@ from pyspark.sql.types import IntegerType, FloatType, StringType, BooleanType
 from pyspark.sql.functions import regexp_replace, split, expr, col, to_date, regexp_extract, udf, count, array_contains, avg, first, explode, abs, desc, asc, stddev, coalesce, to_date, when, date_format, lower, lit, sum, max, min
 import pyspark.sql.functions as F
 
-
 import utils
 
 from pyspark.sql.window import Window
@@ -14,13 +13,11 @@ from pyspark.sql.window import Window
 from coherence_review_model_vader import CoherenceReviewModel
 from season_sentiment_analysis import SeasonSentimentAnalysis
 
-import os
-
-from Bert import BertTrainer
+from RoBERTa_Sentiment import RoBERTa_Sentiment
 
 
-#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 #dataset_path="C:/Users/Utente/Desktop/big data/dataset/Hotel_Reviews.csv"
 
@@ -49,7 +46,7 @@ class SparkBuilder:
 
         #Query Manager associato alla sessione Spark
         self.queryManager = QueryManager(self)
-
+        
     def get_spark_session(self):
         return self.spark      
 
@@ -142,7 +139,9 @@ class SparkBuilder:
 
 class QueryManager:
     def __init__(self, spark_builder: SparkBuilder):
+        
         self.spark = spark_builder
+        self.sentiment_analyzer = RoBERTa_Sentiment()
 
     #------------------------------QUERY 1----------------------------------------------
     def words_score_analysis(self, n=20, min_frequency=1000):
@@ -578,27 +577,12 @@ class QueryManager:
 
         return utils.graficoTrend(trend_df, False)  
     
-    #DA VALIDARE PER BERT
-    def coherence_analysis_BERT(self, threshold=2.0, n=10, export_path=None):
-        """
-        Analizza la coerenza tra recensioni e punteggi usando il modello BERT.
-        Se il modello non esiste nella cartella 'models/bert', lo addestra prima di eseguire l'analisi.
-        """
-        model_path = "/Users/vincenzopresta/Desktop/Big Data/progetto/bert_model"  # Percorso in cui salviamo il modello
+#----------------------------------------------------------------ROBERTA
+    def analyze_single_review(self, positive_text, negative_text):
+            """Analizza il sentiment di una singola recensione."""
+            return self.sentiment_analyzer.analyze_review_sentiment(positive_text, negative_text) #questa funzione si può togliere se non integriamo l'analisi della singola recensione
 
-        # Controlla se il modello è già addestrato
-        if not os.path.exists(model_path):
-            print("Modello BERT non trovato. Addestramento in corso...")            
-            bert_model = BertTrainer(self.spark.df_finale, model_path=model_path)
-            bert_model.train_model()
-            
-            print("Modello BERT addestrato con successo!")
-        else:
-            print("Modello BERT trovato! Procedo con l'analisi...")
-
-        # 🔹 Carica il modello e esegue l'analisi di coerenza
-        bert_model = BertTrainer(self.spark.df_finale, model_path=model_path)
-        predictions = bert_model.analyze_consistency(threshold, n, export_path)
-
-        return predictions
-    
+    def analyze_hotel_sentiment(self, hotel_name):
+        """Calcola il sentiment medio delle recensioni di un hotel."""
+        print(f"Analizzando il sentiment di {hotel_name}")
+        return self.sentiment_analyzer.analyze_hotel_sentiment(hotel_name, self.spark.df_finale) 

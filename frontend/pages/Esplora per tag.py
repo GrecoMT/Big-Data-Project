@@ -20,10 +20,11 @@ st.sidebar.title("🔍 Navigazione")
 st.sidebar.markdown("### Sezioni disponibili:")
 
 st.sidebar.markdown("- 🏠 **Home**")
-st.sidebar.markdown("- 📍 **Mappa Hotel**")
-st.sidebar.markdown("- 📊 **Trend & Analisi**")
-st.sidebar.markdown("- 🔍 **Anomaly Detection**")
-st.sidebar.markdown("- 📝 **Word Cloud**")
+st.sidebar.markdown("- 🗺️ **Esplora con mappa**")
+st.sidebar.markdown("- 📍**Esplora per punto di interesse**")
+st.sidebar.markdown("- #️⃣ **Esplora per tag**")
+st.sidebar.markdown("- 🇮🇹 **Recensione-Nazionalità**")
+st.sidebar.markdown("- 🏖️ **Sentiment Stagionale**")
 
 #Coordinate città
 city_coords = {

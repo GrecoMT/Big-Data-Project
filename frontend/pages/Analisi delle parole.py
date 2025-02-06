@@ -19,6 +19,7 @@ def getSpark(appName):
 spark = getSpark("BigData_App")
 
 st.title("📊 Analisi delle Parole nelle Recensioni")
+st.subheader("La pagina mostra le top parole positive e negative nelle recensioni, è possibile impostare il numero di parole da visualizzare e la frequenza minima necessaria per includere quella parola nell'analisi.")
 
 st.sidebar.title("🔍 Navigazione")
 st.sidebar.markdown("### Sezioni disponibili:")
@@ -74,7 +75,7 @@ if(n<=50):
             ax.set_xlabel("Punteggio medio", fontsize=20)
             ax.set_ylabel("Parola", fontsize=20)
             ax.set_title("Aggettivi con punteggio più basso", fontsize=40)
-            ax.tick_params(axis='y', labelsize=30)  # Aumenta la dimensione del testo sulle etichette Y
+            ax.tick_params(axis='y', labelsize=30)  
             st.pyplot(fig)
         with st.spinner("generazione delle word cloud..."):
             st.subheader("☁️ Word Cloud delle parole negative")
@@ -92,7 +93,7 @@ else:
             ax.set_xlabel("Punteggio medio", fontsize=20)
             ax.set_ylabel("Parola", fontsize=20)
             ax.set_title("Aggettivi con punteggio più alto",fontsize=40)
-            ax.tick_params(axis='y', labelsize=10)  # Aumenta la dimensione del testo sulle etichette Y
+            ax.tick_params(axis='y', labelsize=10)  
             st.pyplot(fig)
         with st.spinner("generazione delle word cloud..."):
             st.subheader("☁️ Word Cloud delle parole positive")
@@ -108,13 +109,12 @@ else:
             ax.set_xlabel("Punteggio medio", fontsize=20)
             ax.set_ylabel("Parola", fontsize=20)
             ax.set_title("Aggettivi con punteggio più basso", fontsize=40)
-            ax.tick_params(axis='y', labelsize=10)  # Aumenta la dimensione del testo sulle etichette Y
+            ax.tick_params(axis='y', labelsize=10)  
             st.pyplot(fig)
         with st.spinner("generazione delle word cloud..."):
             st.subheader("☁️ Word Cloud delle parole negative")
             plot_wordcloud(negative_df, "Parole Negative")
 
-# Opzione di download
 st.download_button(
     "📥 Scarica dati in CSV",
     positive_df.to_csv(index=False) + "\n" + negative_df.to_csv(index=False),

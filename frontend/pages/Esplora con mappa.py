@@ -1,3 +1,4 @@
+
 from backend import SparkBuilder
 import streamlit as st
 import folium
@@ -25,7 +26,6 @@ df = df_temp.toPandas()
 @st.cache_data
 def createMap(city):
     mappa = folium.Map(location=city_coords[city], zoom_start = 12)
-    # Aggiungere marker per ogni hotel
     for _, row in df.iterrows():
         folium.Marker(
             location=[row['lat'], row['lng']],
@@ -72,6 +72,13 @@ def nearby_hotel_compare(lat, lng, d=1000):
     
     return img_stream
 
+#Sentiment analysis
+@st.cache_data
+def analyze_hotel_sentiment(hotel):
+    sentiment = spark.queryManager.analyze_hotel_sentiment(hotel)
+    return sentiment
+
+
 if "stats" not in st.session_state:
     st.session_state.stats = spark.queryManager.hotelStatistics()
 
@@ -93,6 +100,14 @@ city_coords = {
     "Amsterdam" : [52.3709, 4.8902]
 }
 
+sentiment_emoji = {
+    "Piuttosto Positivo": "📈",
+    "Piuttosto Negativo": "📉",
+    "Molto Positivo": "🤩",
+    "Molto Negativo": "😓",
+    "Neutrale": "😐"
+    }
+
 st.sidebar.title("Seleziona una città")
 selected_city = st.sidebar.radio("Città", list(city_coords.keys()))
 
@@ -100,10 +115,11 @@ st.sidebar.title("🔍 Navigazione")
 st.sidebar.markdown("### Sezioni disponibili:")
 
 st.sidebar.markdown("- 🏠 **Home**")
-st.sidebar.markdown("- 📍 **Mappa Hotel**")
-st.sidebar.markdown("- 📊 **Trend & Analisi**")
-st.sidebar.markdown("- 🔍 **Anomaly Detection**")
-st.sidebar.markdown("- 📝 **Word Cloud**")
+st.sidebar.markdown("- 🗺️ **Esplora con mappa**")
+st.sidebar.markdown("- 📍**Esplora per punto di interesse**")
+st.sidebar.markdown("- #️⃣ **Esplora per tag**")
+st.sidebar.markdown("- 🇮🇹 **Recensione-Nazionalità**")
+st.sidebar.markdown("- 🏖️ **Sentiment Stagionale**")
 
 # Creare una mappa con Folium
 mappa = folium.Map(location=city_coords[selected_city], zoom_start=12)
@@ -122,6 +138,11 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
         '''
     )
     
+    print(hotel_selezionato)
+    
+    sentiment_result = analyze_hotel_sentiment(hotel_selezionato)
+    st.metric(label="Sentiment Complessivo", label_visibility="visible", value=sentiment_result, delta=sentiment_emoji.get(sentiment_result, ""))
+        
     with st.spinner(f" Individuo le statistiche per {hotel_selezionato}..."):
         st.write(f"*Statistiche per {hotel_selezionato}:*")
         stats = getStats(hotel_selezionato)
@@ -159,23 +180,23 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
             st.metric(label="Average Score", value=round(stats.loc[0, "Avg_Reviewer_Score"], 2))
             st.metric(label="Minimum reviewer score", value=stats.loc[0, "Min_Reviewer_Score"])
             st.metric(label="Maximum Reviewer score", value=stats.loc[0, "Max_Reviewer_Score"])
-    
-    
+
+
     with st.spinner(f"Generazione del trend mensile per {hotel_selezionato}..."):
         st.write(f"**Trend Mensile per {hotel_selezionato}:**")
         plt = trend_singolo(hotel_selezionato)
         st.image(plt)
-    
+
     with st.spinner(f"Individuazione delle recensioni anomale per {hotel_selezionato}..."):
         extreme_reviews = anomalie(hotel_selezionato) 
         st.write(f"**Recensioni anomale rispetto alla media per {hotel_selezionato}:**")
-         
+            
         if not extreme_reviews.empty: 
             st.dataframe(extreme_reviews)    
         else: 
             st.write(f"Nessuna recensione anomala rispetto alla media per {hotel_selezionato}.")
 
-    
+
     with st.spinner(f"Confronto ultime recensioni con la media per {hotel_selezionato}..."):
         st.write(f"**Confronto ultime recensioni con la media per {hotel_selezionato}:**")
         df_reputation = reputation(hotel_selezionato)
