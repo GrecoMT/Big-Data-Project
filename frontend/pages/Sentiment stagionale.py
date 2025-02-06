@@ -1,11 +1,9 @@
 import streamlit as st
-import pandas as pd
 import plotly.express as px
-from pyspark.sql.functions import avg, count, col
-from season_sentiment_analysis import SeasonSentimentAnalysis
+from pyspark.sql.functions import col
 
-# Funzione per caricare i dati della sentiment analysis stagionale
 
+st.set_page_config(page_title="Analisi Sentiment Stagionale", layout="wide")
 
 @st.cache_resource
 def getSpark(appName):
@@ -24,30 +22,17 @@ st.sidebar.markdown("- #️⃣ **Esplora per tag**")
 st.sidebar.markdown("- 🇮🇹 **Recensione-Nazionalità**")
 st.sidebar.markdown("- 🏖️ **Sentiment Stagionale**")
 
+@st.cache_resource()
 def load_seasonal_sentiment():
-    sentiment_analysis = SeasonSentimentAnalysis(spark.df_finale)
-    df_preprocessed = sentiment_analysis.preprocess()
-    
-    seasonal_sentiment = df_preprocessed.groupBy("Hotel_Name", "Hotel_Address", "Season").agg(
-        avg("Net_Sentiment").alias("avg_sentiment"),
-        avg("Reviewer_Score").alias("avg_reviewer_score"),
-        count("*").alias("review_count")
-    ).orderBy("Hotel_Name", "Season")
+    return spark.queryManager.seasonal_sentiment_analysis()
 
-    return seasonal_sentiment
-
-# 🔹 Layout di Streamlit
-st.set_page_config(page_title="Analisi Sentiment Stagionale", layout="wide")
-
-# 🔹 Carica i dati
-df_seasonal = load_seasonal_sentiment()
-
-# 🔹 Titolo e descrizione
 st.title("📊 Analisi Sentiment Stagionale negli Hotel")
 st.write(
     "Questa dashboard mostra come il **sentiment medio** delle recensioni varia **in base alle stagioni** "
     "e confronta il **punteggio dato dagli utenti**. Seleziona una città e successivamente un hotel per vedere le variazioni!"
 )
+
+df_seasonal = load_seasonal_sentiment()
 
 if "selected_button" not in st.session_state:
     st.session_state.selected_button = None
@@ -86,16 +71,14 @@ hotels_city = None
 if st.session_state.selected_button != None: 
     hotels_city = df_seasonal.filter(col("Hotel_Address").contains(city))
 
-    # 🔹 Seleziona un hotel specifico
     hotels_name = hotels_city.select(col("Hotel_Name")).distinct()
     
     hotel_selected = st.selectbox(f"🏨 Seleziona un hotel di {city}", options=hotels_name, placeholder="Seleziona un hotel", index=None)
 
     if hotel_selected != None:
-        # 🔹 Filtra il dataset per l'hotel selezionato
         df_hotel = hotels_city.filter(col("Hotel_Name") == hotel_selected).toPandas()
 
-        # 🔹 Grafico interattivo - Sentiment e Punteggio per Stagione
+        # Grafico con sentiment e punteggio per stagione
         fig = px.line(
             df_hotel,
             x="Season",
@@ -105,29 +88,36 @@ if st.session_state.selected_button != None:
             title=f"📈 Sentiment e Punteggio per Stagione - {hotel_selected}",
         )
 
-        # 🔹 Personalizzazione del grafico
         fig.update_layout(
-            xaxis_title="Stagione",
-            yaxis_title="Punteggio Medio",
-            legend_title="Metrica",
-            template="plotly_dark",
-            hovermode="x unified",
+        xaxis_title="Stagione",
+        yaxis_title="Punteggio Medio",
+        legend_title="Metrica",
+        template="plotly_dark",
+        hovermode="x unified",
+    )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        sentiment_mean_score = df_hotel['avg_sentiment'].mean()
+
+        if sentiment_mean_score >= 0.4:
+            sentiment_label = "😊 Positivo"
+            sentiment_color = "green"
+        elif sentiment_mean_score < 0:
+            sentiment_label = "😠 Negativo"
+            sentiment_color = "red"
+        else:
+            sentiment_label = "😐 Neutrale"
+            sentiment_color = "gray"
+            
+        st.markdown(
+            f"<h3 style='text-align: center; color: {sentiment_color};'>📝 Sentiment Complessivo delle recensioni: {sentiment_label}</h3>",
+            unsafe_allow_html=True
         )
 
-        # 🔹 Mostra il grafico
-        st.plotly_chart(fig, use_container_width=True)
-
-        # 🔹 Tabella dati aggregati
         st.write("📊 **Dati Aggregati delle Recensioni**")
         st.dataframe(df_hotel)
 
-        # 🔹 Box con insights
         st.success(
             f"🔎 **Insight:** L'hotel **{hotel_selected}** ha un **sentiment medio di {df_hotel['avg_sentiment'].mean():.2f}** "
             f"e un **punteggio utenti di {df_hotel['avg_reviewer_score'].mean():.2f}** durante l'anno."
-        )
-
-        # 🔹 Footer
-        st.markdown(
-            "💡 Questa analisi aiuta a identificare **pattern stagionali** nella percezione degli hotel da parte degli utenti!"
         )

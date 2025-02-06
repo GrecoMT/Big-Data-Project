@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 
 import numpy as np
-import io
 
 st.set_page_config(page_title="Analisi delle Parole", layout="wide")
 

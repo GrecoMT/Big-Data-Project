@@ -1,35 +1,18 @@
 from pyspark.sql import SparkSession
-from pyspark import SparkConf
-
-from pyspark.sql.types import IntegerType, FloatType, StringType, BooleanType
-
+from pyspark.sql.types import IntegerType, FloatType, BooleanType
 from pyspark.sql.functions import regexp_replace, split, expr, col, to_date, regexp_extract, udf, count, array_contains, avg, first, explode, abs, desc, asc, stddev, coalesce, to_date, when, date_format, lower, lit, sum, max, min
-
 import utils
-
 from pyspark.sql.window import Window
-
 from season_sentiment_analysis import SeasonSentimentAnalysis
-
 from RoBERTa_Sentiment import RoBERTa_Sentiment
-
 from DeepSeekSum import SummaryLLM
 
-
-#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 class SparkBuilder:
-    def __init__(self, appname: str):
-        
-        conf = SparkConf() \
-            .set("spark.driver.memory", "8g") \
-            .set("spark.executor.memory", "8g")\
-            .set('spark.executor.cores', "4")\
-            .set('spark.driver.maxResultSize', "4gb")
-            
+    def __init__(self, appname: str):            
         self.spark = (SparkSession.builder 
-                    .config(conf=conf)    
                     .master("local[*]") 
                     .appName(appname)
                     .getOrCreate())
@@ -377,18 +360,20 @@ class QueryManager:
         Analizza come il sentiment medio delle recensioni varia in base alla stagione dell'anno.
         Utilizza VADER -> rule based e lessico
         """
-        # Preprocessa i dati usando la classe SeasonSentimentAnalysis
         sentiment_analysis = SeasonSentimentAnalysis(self.spark.df_finale)
+
+        # Preprocessa i dati per calcolare il sentiment e la stagione
         df_preprocessed = sentiment_analysis.preprocess()
 
-        # Calcola il sentiment medio per stagione e per hotel, il punteggio medio e il delta
-        seasonal_sentiment = df_preprocessed.groupBy("Hotel_Name","Season").agg(
+        # Aggrega il sentiment per hotel e stagione
+        seasonal_sentiment = df_preprocessed.groupBy("Hotel_Name", "Hotel_Address", "Season").agg(
             avg("Net_Sentiment").alias("avg_sentiment"),
             avg("Reviewer_Score").alias("avg_reviewer_score"),
             count("*").alias("review_count")
         ).orderBy("Hotel_Name", "Season")
 
         return seasonal_sentiment
+        
         
     #-----------------------QUERY 7------------------------------------------------
     #Identificare recensioni sospette tipo recensioni estremamente positive o negative che differiscono significativamente dal trend generale dell’hotel

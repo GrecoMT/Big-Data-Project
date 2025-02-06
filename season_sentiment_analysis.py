@@ -1,4 +1,4 @@
-from pyspark.sql.functions import col, month, when, udf, avg, concat
+from pyspark.sql.functions import col, month, when, udf, concat
 from pyspark.sql.types import FloatType
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import nltk
@@ -33,16 +33,12 @@ class SeasonSentimentAnalysis:
         Calcola il sentiment per recensioni positive e negative
         e aggiunge la stagione per ogni recensione.
         """
-        # Calcola il sentiment per recensioni positive e negative
-        '''self.df = self.df.withColumn("Positive_Sentiment", sentiment_udf(col("Positive_Review")))
-        self.df = self.df.withColumn("Negative_Sentiment", sentiment_udf(col("Negative_Review")))'''
-        self.df = self.df.withColumn("Total_Review", concat((col("Positive_Review"), col("Negative_Review"))))
+        pos_text = col("Positive_Review")
+        neg_text = col("Negative_Review")
+        text = concat(pos_text, neg_text)
+        self.df = self.df.withColumn("Total_Review", text)
         self.df = self.df.withColumn("Net_Sentiment", sentiment_udf(col("Total_Review")))
 
-        # Calcola il sentiment netto
-        #self.df = self.df.withColumn("Net_Sentiment", col("Positive_Sentiment") - col("Negative_Sentiment"))
-
-        # Determina la stagione in base al mese
         self.df = self.df.withColumn(
             "Season",
             when((month(col("Review_Date")).isin(12, 1, 2)), "Winter")  # Inverno
