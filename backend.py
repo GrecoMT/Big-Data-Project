@@ -327,8 +327,7 @@ class QueryManager:
                 min("Reviewer_Score").alias("Min_Reviewer_Score"),
                 avg("Reviewer_Score").alias("Avg_Reviewer_Score"),
                 first("lat").alias("Latitude"),
-                first("lng").alias("Longitude"),
-                avg("Additional_Number_of_Scoring").alias("Avg_Additional_Number_of_Scoring")
+                first("lng").alias("Longitude")
             )
             return res
 
