@@ -390,4 +390,11 @@ class QueryManager:
                 count("*").alias("review_count")
             ).filter(col("review_count") >= min_reviews)
         return nationality_reviews
+    
+    #Query 16
+    def get_reviews_for_nationality(self, nationality):
+        # Filtra i dati per la nazionalità selezionata
+        return self.spark.df_finale.filter(col("Reviewer_Nationality") == nationality).select("Hotel_Name", "Review_Date", "Reviewer_Nationality", "Reviewer_Score","Negative_Review", "Review_Total_Negative_Word_Counts", "Positive_Review", "Review_Total_Positive_Word_Counts",  "Tags", )
+    
+    
 

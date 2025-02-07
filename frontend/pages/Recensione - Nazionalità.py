@@ -32,10 +32,8 @@ def nationality_review_analysis_cached(min_reviews):
 
 @st.cache_data
 def get_reviews_for_nationality(nationality):
-    # Filtra i dati per la nazionalità selezionata
-    if nationality:
-        return spark.df_finale.filter(col("Reviewer_Nationality") == nationality).select("Hotel_Name", "Review_Date", "Reviewer_Nationality", "Reviewer_Score","Negative_Review", "Review_Total_Negative_Word_Counts", "Positive_Review", "Review_Total_Positive_Word_Counts",  "Tags", ).toPandas()
-    return pd.DataFrame()  # Restituisce un DataFrame vuoto se non è selezionata una nazionalità
+    df = spark.queryManager.get_reviews_for_nationality(nationality)
+    return df.toPandas()
 
 @st.cache_data
 def get_coordinates(nationalities, attempt=1, max_attempts=5):
