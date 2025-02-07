@@ -7,8 +7,8 @@ from season_sentiment_analysis import SeasonSentimentAnalysis
 from RoBERTa_Sentiment import RoBERTa_Sentiment
 from DeepSeekSum import SummaryLLM
 
-#dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
-dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
+dataset_path = "/Users/vincenzopresta/Desktop/Big Data/dataset/Hotel_Reviews.csv"
+#dataset_path = "/Users/matteog/Documents/Università/Laurea Magistrale/Big Data/Progetto/Dataset/Hotel_Reviews.csv"
 
 class SparkBuilder:
     def __init__(self, appname: str):            
@@ -332,10 +332,6 @@ class QueryManager:
             return res
 
     #Roberta's Functions (9)
-    def analyze_single_review(self, positive_text, negative_text):
-            """Analizza il sentiment di una singola recensione."""
-            return self.sentiment_analyzer.analyze_review_sentiment(positive_text, negative_text) #questa funzione si può togliere se non integriamo l'analisi della singola recensione
-
     def analyze_hotel_sentiment(self, hotel_name):
         """Calcola il sentiment medio delle recensioni di un hotel."""
         print(f"Analizzando il sentiment di {hotel_name}")
@@ -386,7 +382,7 @@ class QueryManager:
         return tags
     
     #Query 15
-    def nationality_review_analysis(self, min_reviews=2):
+    def nationality_review_analysis(self, min_reviews):
 
         df = self.spark.df_finale
         nationality_reviews = df.groupBy("Reviewer_Nationality") \

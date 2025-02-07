@@ -30,6 +30,7 @@ st.sidebar.markdown("- 🏖️ **Sentiment Stagionale**")
 def nationality_review_analysis_cached(min_reviews):
     return spark.queryManager.nationality_review_analysis(min_reviews=min_reviews).toPandas()
 
+@st.cache_data
 def get_reviews_for_nationality(nationality):
     # Filtra i dati per la nazionalità selezionata
     if nationality:
@@ -93,7 +94,6 @@ r = pdk.Deck(
 st.pydeck_chart(r)
 st.write("---")
 
-n = 100
 min_reviews = st.selectbox("Seleziona il numero minimo di recensioni per includere una nazionalità", [1, 100, 1000])
 
 st.markdown("### Dati delle recensioni per nazionalità")
@@ -101,7 +101,7 @@ st.markdown("### Dati delle recensioni per nazionalità")
 # Selettore per la nazionalità
 selected_nationality = st.selectbox(
     "Seleziona una nazionalità:",
-    options=map_data["Reviewer_Nationality"].unique(),
+    options=nationality_review_analysis_cached(min_reviews),
     index=0
 )
 
