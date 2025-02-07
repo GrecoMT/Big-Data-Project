@@ -223,11 +223,8 @@ class QueryManager:
             col("avg_recent_score") - col("avg_historical_score")
         )
 
-        # Risultati finali
-        df_aggregated.orderBy("score_difference", ascending=False).filter(col("score_difference")<score_difference).show(n, truncate=False)
-
         # Media delle differenze
-        avg_difference = df_aggregated.agg(avg("score_difference").alias("avg_difference")).collect()[0][0]
+        #avg_difference = df_aggregated.agg(avg("score_difference").alias("avg_difference")).collect()[0][0]
         
         return df_aggregated
     #Query 4 singola
