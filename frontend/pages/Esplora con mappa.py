@@ -145,11 +145,12 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
     )
     
     
-    
+    st.subheader("Analisi del sentiment complessivo")
     sentiment_result = analyze_hotel_sentiment(hotel_selezionato)
     st.metric(label="Sentiment Complessivo", label_visibility="visible", value=sentiment_result, delta=sentiment_emoji.get(sentiment_result, ""))
         
     with st.spinner(f" Individuo le statistiche per {hotel_selezionato}..."):
+        st.subheader("Statistiche")
         st.write(f"*Statistiche per {hotel_selezionato}:*")
         stats = getStats(hotel_selezionato)
         #st.table(stats)
@@ -188,17 +189,20 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
             st.metric(label="Maximum Reviewer score", value=stats.loc[0, "Max_Reviewer_Score"])
     
     with st.spinner(f"Riassumo le recensioni... per {hotel_selezionato}"):
+        st.subheader("Riassunto Recensioni")
         st.markdown(
             getSum(hotel_selezionato)
         )
 
     with st.spinner(f"Generazione del trend mensile per {hotel_selezionato}..."):
+        st.subheader("Trend mensile")
         st.write(f"**Trend Mensile per {hotel_selezionato}:**")
         plt = trend_singolo(hotel_selezionato)
         st.image(plt)
 
     with st.spinner(f"Individuazione delle recensioni anomale per {hotel_selezionato}..."):
         extreme_reviews = anomalie(hotel_selezionato) 
+        st.subheader("Recensioni anomale")
         st.write(f"**Recensioni anomale rispetto alla media per {hotel_selezionato}:**")
             
         if not extreme_reviews.empty: 
@@ -208,6 +212,7 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
 
 
     with st.spinner(f"Confronto ultime recensioni con la media per {hotel_selezionato}..."):
+        st.subheader("Confronto ultime recensioni")
         st.write(f"**Confronto ultime recensioni con la media per {hotel_selezionato}:**")
         df_reputation = reputation(hotel_selezionato)
         col1, col2 = st.columns(2)
@@ -221,6 +226,7 @@ if map_data and map_data.get('last_object_clicked_tooltip') != None:
             st.write(trend)
 
     with st.spinner(f"Confronto con hotel vicini (nel raggio di 1km) a {hotel_selezionato}..."):
+        st.subheader("Confronto trend hotel vicini")
         hotel_lat = map_data.get("last_object_clicked").get("lat")
         hotel_lng = map_data.get("last_object_clicked").get("lng")
         st.write(f"**Trend hotel vicini (distanza 1km) a {hotel_selezionato}:**")
