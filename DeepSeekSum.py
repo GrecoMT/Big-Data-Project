@@ -9,7 +9,7 @@ class SummaryLLM:
     def getReviews(self, hotel_name):
         reviews_df = self.df.filter((col("Hotel_Name") == hotel_name) & 
                 (col("Positive_Review") != "No Positive") & 
-                (col("Negative_Review") != "No Negative")).orderBy(col("Total_Number_of_Reviews_Reviewer_Has_Given")).select("Negative_Review", "Positive_Review").limit(20) 
+                (col("Negative_Review") != "No Negative")).orderBy(col("Total_Number_of_Reviews_Reviewer_Has_Given")).select("Negative_Review", "Positive_Review").limit(50) 
         
         reviews_Pandas = reviews_df.toPandas()
         reviews = ""

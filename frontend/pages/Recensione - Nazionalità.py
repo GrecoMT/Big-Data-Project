@@ -27,8 +27,8 @@ st.sidebar.markdown("- 🇮🇹 **Recensione-Nazionalità**")
 st.sidebar.markdown("- 🏖️ **Sentiment Stagionale**")
 
 @st.cache_data
-def nationality_review_analysis_cached(n, min_reviews):
-    return spark.queryManager.nationality_review_analysis(n=n, min_reviews=min_reviews).toPandas()
+def nationality_review_analysis_cached(min_reviews):
+    return spark.queryManager.nationality_review_analysis(min_reviews=min_reviews).toPandas()
 
 def get_reviews_for_nationality(nationality):
     # Filtra i dati per la nazionalità selezionata
@@ -50,7 +50,7 @@ def get_coordinates(nationalities, attempt=1, max_attempts=5):
         except (GeocoderTimedOut, GeocoderUnavailable):
             if attempt < max_attempts:
                 time.sleep(2)  
-                return get_coordinates(nationalities, attempt + 1, max_attempts) #RICORSIONE SI SI SI SI SI SI SI SI SI SI SI SI SI SI SI SI SI SI SI SI SI
+                return get_coordinates(nationalities, attempt + 1, max_attempts)
             else:
                 coordinates[nationality] = None
                 st.warning(f"Impossibile ottenere coordinate per {nationality}.")
@@ -59,11 +59,7 @@ def get_coordinates(nationalities, attempt=1, max_attempts=5):
 
 # Parametri per la mappa
 st.title("🌍 Analisi Recensioni per Nazionalità")
-n = 100
-min_reviews = st.slider("Seleziona il numero minimo di recensioni per includere una nazionalità", 1, 50, 100)
-
-st.markdown("### Dati delle recensioni per nazionalità")
-nationality_reviews = nationality_review_analysis_cached(n, min_reviews)
+nationality_reviews = nationality_review_analysis_cached(1) #serve per la mappa
 
 # Ottieni le coordinate per le nazionalità
 unique_nationalities = nationality_reviews["Reviewer_Nationality"].unique()
@@ -78,7 +74,7 @@ map_data["lat"] = map_data["coordinates"].apply(lambda x: x[0])
 map_data["lon"] = map_data["coordinates"].apply(lambda x: x[1])
 
 # Mappa con i puntini
-st.subheader("🌍 Mappa delle Nazionalità")
+st.subheader("Mappa delle nazionalità dei recensori")
 map_layer = pdk.Layer(
     "ScatterplotLayer",
     data=map_data,
@@ -88,7 +84,6 @@ map_layer = pdk.Layer(
     pickable=False,
 )
 
-
 r = pdk.Deck(
     layers=[map_layer],
     initial_view_state=pdk.ViewState(latitude=0, longitude=0, zoom=1),
@@ -96,8 +91,12 @@ r = pdk.Deck(
 )
 
 st.pydeck_chart(r)
-
 st.write("---")
+
+n = 100
+min_reviews = st.selectbox("Seleziona il numero minimo di recensioni per includere una nazionalità", [1, 100, 1000])
+
+st.markdown("### Dati delle recensioni per nazionalità")
 
 # Selettore per la nazionalità
 selected_nationality = st.selectbox(

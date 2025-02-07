@@ -38,4 +38,4 @@ if __name__ == '__main__':
     result = query_manager.get_nearby_hotels(45.464098, 9.191926)
     dff = result.toPandas()
     print(dff.head())'''
-    query_manager.tag_influence_analysis()
+    query_manager.nationality_review_analysis().show()

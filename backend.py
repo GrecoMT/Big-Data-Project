@@ -159,24 +159,8 @@ class QueryManager:
             .filter(col("word_count") >= min_frequency) \
             .orderBy("avg_score")  # Ordina dal punteggio più basso
         return positive_word_scores, negative_word_scores
-       
-    #Query 2
-    def nationality_review_analysis(self, min_reviews=2):
-
-        df = self.spark.df_finale
-
-        # Correlazione tra nazionalità e lunghezza delle recensioni positive/negative
-        nationality_reviews = df.groupBy("Reviewer_Nationality") \
-            .agg(
-                avg("Review_Total_Positive_Word_Counts").alias("avg_positive_words"),
-                avg("Review_Total_Negative_Word_Counts").alias("avg_negative_words"),
-                count("*").alias("review_count")
-            ).filter(col("review_count") >= min_reviews) \
-            .orderBy(desc("avg_positive_words"))
-
-        return nationality_reviews
         
-    #Query 3
+    #Query 2
     def tag_influence_analysis(self, min_count=1000):
         df = self.spark.df_finale
 
@@ -195,7 +179,7 @@ class QueryManager:
 
         return tag_scores_desc
     
-    #Query 4
+    #Query 3
     def review_length_analysis(self):
         df = self.spark.df_finale.filter((col("Review_Total_Positive_Word_Counts") > 0) | (col("Review_Total_Negative_Word_Counts") > 0))
         
@@ -208,7 +192,7 @@ class QueryManager:
         
         return review_length
     
-    #Query 5
+    #Query 4
     def reputation_analysis(self, recent_reviews=30, score_difference = -1):
         df = self.spark.df_finale
 
@@ -246,7 +230,7 @@ class QueryManager:
         avg_difference = df_aggregated.agg(avg("score_difference").alias("avg_difference")).collect()[0][0]
         
         return df_aggregated
-    #Query 5 singola
+    #Query 4 singola
     def reputation_analysis_single(self, hotel_name, recent_reviews=30):
         df = self.spark.df_finale.filter(col("Hotel_Name") == hotel_name)
 
@@ -278,7 +262,7 @@ class QueryManager:
         )
         return df_aggregated
                 
-    #Query 6
+    #Query 5
     def seasonal_sentiment_analysis(self):
         sentiment_analysis = SeasonSentimentAnalysis(self.spark.df_finale)
 
@@ -294,7 +278,7 @@ class QueryManager:
 
         return seasonal_sentiment
         
-    #Query 7
+    #Query 6
     def anomaly_detection(self, hotelName):
         
         df = self.spark.df_finale
@@ -319,7 +303,7 @@ class QueryManager:
         
         return df_fin
     
-    #Query 8
+    #Query 7
     def trend_mensile(self, hotelName):
         # Filtrare i dati per l'hotel specificato
         df_trend = self.spark.df_finale.filter(col("Hotel_Name") == hotelName)
@@ -334,7 +318,7 @@ class QueryManager:
 
         return utils.graficoTrend(trend_df, True)
 
-    #Query 9
+    #Query 8
     def hotelStatistics(self):
             df = self.spark.df_finale
 
@@ -351,7 +335,7 @@ class QueryManager:
             )
             return res
 
-    #Roberta's Functions
+    #Roberta's Functions (9)
     def analyze_single_review(self, positive_text, negative_text):
             """Analizza il sentiment di una singola recensione."""
             return self.sentiment_analyzer.analyze_review_sentiment(positive_text, negative_text) #questa funzione si può togliere se non integriamo l'analisi della singola recensione
@@ -361,26 +345,19 @@ class QueryManager:
         print(f"Analizzando il sentiment di {hotel_name}")
         return self.sentiment_analyzer.analyze_hotel_sentiment(hotel_name, self.spark.df_finale) 
 
-    #DeepSeek
+    #DeepSeek Sum (10)
     def sumReviews(self, hotel_name):
         return self.summaryLLM.getSummary(hotel_name)
 
-    #Query supporto 1
+    #Query 11
     def get_hotels_by_tag(self, city, tag):
-        """
-        city: Nome della città su cui filtrare gli hotel
-        selected_tag: Tag selezionato per filtrare gli hotel
-        order: "highest" per punteggio più alto, "lowest" per punteggio più basso
-        """
-
-        # Estrarre la città dall'indirizzo dell'hotel (ipotizzando che sia alla fine dell'indirizzo)
-        df_nuovo = self.spark.df_finale.filter(col("Hotel_Address").contains(city) & array_contains(col("Tags"),tag)).groupBy("Hotel_Name", "Hotel_Address").agg(
+        df_ret = self.spark.df_finale.filter(col("Hotel_Address").contains(city) & array_contains(col("Tags"),tag)).groupBy("Hotel_Name", "Hotel_Address").agg(
             avg("Reviewer_Score").alias("avg_score") 
         ).orderBy(desc("avg_score"))
         
-        return df_nuovo
+        return df_ret
     
-    #Query supporto 2
+    #Query 12
     def get_nearby_hotels(self, user_lat, user_lng, max_distance):
         # Registra la funzione come UDF
         haversine_udf = udf(lambda lat, lng, user_lat, user_lng: utils.haversine(lat, lng, user_lat, user_lng))
@@ -389,7 +366,7 @@ class QueryManager:
             "distance", haversine_udf(col("lat"), col("lng"), lit(user_lat), lit(user_lng))
         ).filter(col("distance") <= max_distance)
     
-    #Query supporto 3
+    #Query 13
     def trend_mensile_compare(self, dataframe):
         
         #Creazione colonna "YearMonth" che contiene l'anno e il mese
@@ -402,15 +379,23 @@ class QueryManager:
 
         return utils.graficoTrend(trend_df, False)  
 
-    #Query supporto 4
+    #Query 14
     def get_most_used_tags(self):
-
         # Esplodere l'array "tags" in valori singoli
         tags_df = self.spark.df_finale.select(explode(col("tags")).alias("tag"))
-
         # Contare la frequenza di ogni tag e ordinarli in ordine decrescente
         tags_count_df = tags_df.groupBy("tag").agg(count("*").alias("count")).orderBy(desc("count"))
-        
         tags = tags_count_df.select("tag")
         
         return tags
+    
+    #Query 15
+    def nationality_review_analysis(self, min_reviews=2):
+
+        df = self.spark.df_finale
+        nationality_reviews = df.groupBy("Reviewer_Nationality") \
+            .agg(
+                count("*").alias("review_count")
+            ).filter(col("review_count") >= min_reviews)
+        return nationality_reviews
+
