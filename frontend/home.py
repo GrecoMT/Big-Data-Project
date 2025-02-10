@@ -57,8 +57,7 @@ def show_landing_page():
             """
             <h3 style='color: #333;'>📌 Scopo del Progetto</h3>
             <p style='font-size: 18px;'>
-            Questo progetto sfrutta Spark per analizzare le recensioni degli hotel in Europa, individuare 
-            anomalie e tendenze e fornire insight significativi per il settore alberghiero.
+            Questo progetto sfrutta Spark per analizzare le recensioni degli hotel in Europa.
             </p>
             """, unsafe_allow_html=True
         )
@@ -82,13 +81,13 @@ def show_landing_page():
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown("✅ **Esplorazione geografica** degli hotel")
-        st.markdown("✅ **Identificazione di recensioni sospette**")
+        st.markdown("✅ **Analisi del testo delle recensioni**")
+        st.markdown("✅ **Valutazione della reputazione degli hotel**")
     with col2:
-        st.markdown("✅ **Analisi delle parole chiave** nelle recensioni")
-        st.markdown("✅ **Andamento della reputazione degli hotel** nel tempo")
+        st.markdown("✅ **Analisi del sentiment**")
+        st.markdown("✅ **Individuazione di recensioni sospette**")
     with col3:
-        st.markdown("✅ **Visualizzazione interattiva** dei dati")
+        st.markdown("✅ **Analisi dei trend temporali**")
         st.markdown("✅ **Correlazione tra nazionalità e punteggi**")
 
     # Divider
