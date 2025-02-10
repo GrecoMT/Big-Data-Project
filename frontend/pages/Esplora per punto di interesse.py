@@ -172,8 +172,6 @@ if city != None and poi != None:
         - **Valore medio delle recensioni**: Indica la valutazione complessiva basata sulle recensioni degli utenti.
         - **Media delle ultime recensioni**: Mostra la media delle recensioni più recenti per ciascun hotel, dando un'indicazione più aggiornata sulla qualità del servizio.
         - **Distanza dal punto di interesse**: Indica la distanza in metri tra ogni hotel e il punto di interesse selezionato.
-
-        Queste informazioni ti aiuteranno a fare una scelta più informata sugli hotel da esplorare!
         """)
         st.dataframe(hotelVicini_pandas(nearby_hotels))
 
