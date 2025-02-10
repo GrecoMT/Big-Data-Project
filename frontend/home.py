@@ -17,10 +17,12 @@ st.sidebar.title("🔍 Navigazione")
 st.sidebar.markdown("### Sezioni disponibili:")
 
 st.sidebar.markdown("- 🏠 **Home**")
-st.sidebar.markdown("- 📍 **Mappa Hotel**")
-st.sidebar.markdown("- 📊 **Trend & Analisi**")
-st.sidebar.markdown("- 🔍 **Anomaly Detection**")
-st.sidebar.markdown("- 📝 **Word Cloud**")
+st.sidebar.markdown("- 📊 **Analisi delle parole**")
+st.sidebar.markdown("- 🗺️ **Esplora con mappa**")
+st.sidebar.markdown("- 📍 **Esplora per punto di interesse**")
+st.sidebar.markdown("- #️⃣ **Esplora per tag**")
+st.sidebar.markdown("- 🇮🇹 **Recensione-Nazionalità**")
+st.sidebar.markdown("- 🏖️ **Sentiment Stagionale**")
 
 @st.cache_resource
 def get_spark_and_query_manager():
@@ -65,6 +67,8 @@ def show_landing_page():
         st.markdown("- 🔥 **Apache Spark** per il processamento massivo dei dati")
         st.markdown("- 🎨 **Streamlit** per un’interfaccia intuitiva e interattiva")
         st.markdown("- 📌 **Folium & Matplotlib** per la visualizzazione dei dati")
+        st.markdown("- 🧠 **RoBERTa** per l'analisi del sentiment delle recensioni")
+        st.markdown("- 🤖 **DeepSeek** per la generazione dei riassunti delle recensioni")
 
     # Linea divisoria
     st.markdown("---")
@@ -91,7 +95,7 @@ def show_landing_page():
     st.markdown("---")
 
     # Sezione interattiva con pulsanti
-    st.markdown("<h3 style='text-align: center;'>💡 Inizia ora selezionando una sezione dal menu laterale!</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>💡 Inizia ora selezionando una pagina dal menu laterale!</h3>", unsafe_allow_html=True)
 
 # Gestione delle sezioni
 def main():
