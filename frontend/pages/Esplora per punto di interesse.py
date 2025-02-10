@@ -21,7 +21,7 @@ city_coords = {
 }
 
 def getSpark(appName):
-    return SparkBuilder("appName")
+    return SparkBuilder(appName)
 
 @st.cache_data
 def hotelVicini_pandas(dataframe):
