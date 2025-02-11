@@ -66,7 +66,7 @@ cd your-repository
 pip install -r requirements.txt
 
 # Run the Streamlit app
-streamlit run app.py
+streamlit run frontend/Home.py
 ```
 
 ## Usage
