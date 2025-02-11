@@ -1,0 +1,11 @@
+pyspark
+transformers
+nltk
+streamlit
+requests
+torch
+matplotlib
+seaborn
+pandas
+plotly
+ollama
