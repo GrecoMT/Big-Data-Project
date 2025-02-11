@@ -1,7 +1,7 @@
 # Big Data Project - Big Data Analysis on Hotel Reviews
 
 ## Overview
-This project is focused on performing sentiment analysis on hotel reviews using Apache Spark (PySpark) and deep learning models. The dataset consists of 515,000 hotel reviews from Europe, sourced from Booking.com. The goal is to process, analyze, and extract meaningful insights from the data using machine learning and natural language processing (NLP) techniques.
+A comprehensive big data project that analyzes hotel reviews using Apache Spark (PySpark) and machine learning techniques. The dataset consists of 515,000 hotel reviews from Europe, sourced from Booking.com. The goal is to process, analyze, and extract meaningful insights from the data using machine learning and natural language processing (NLP) techniques.
 
 ## Technologies Used
 - **Apache Spark (PySpark)**: For handling large-scale data processing.
