@@ -79,9 +79,3 @@ streamlit run frontend/Home.py
 - Matteo Greco - [GitHub](https://github.com/matteogreco)
 - Vincenzo Presta - [GitHub](https://github.com/vincenzopresta)
 
-## License
-This project is licensed under the MIT License. Feel free to contribute and enhance the functionality!
-
----
-This README provides a structured guide for users to understand, install, and utilize the project effectively.
-
