@@ -76,8 +76,8 @@ streamlit run frontend/Home.py
 4. **Launch Web App:** Use `streamlit run app.py` to explore data through an interactive UI.
 
 ## Contributors
-- Matteo Greco - [GitHub]([https://github.com/matteogreco](https://github.com/GrecoMT)
-- Vincenzo Presta - [GitHub]([https://github.com/vincenzopresta](https://github.com/VincenzoPresta)
+- Matteo Greco - [GitHub]([https://github.com/matteogreco])
+- Vincenzo Presta - [GitHub]([https://github.com/vincenzopresta])
 
 ## License
 This project is licensed under the MIT License. Feel free to contribute and enhance the functionality!
