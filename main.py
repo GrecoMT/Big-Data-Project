@@ -1,5 +1,4 @@
 from backend import SparkBuilder
-from pyspark.sql.functions import col, lower
 import os 
 
 def clear_terminal():
